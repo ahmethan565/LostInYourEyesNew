@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ExitGames.Client.Photon.StructWrapping;
-using UnityEditor.Rendering;
 using UnityEngine;
 
 public class TableReceiver : MonoBehaviour

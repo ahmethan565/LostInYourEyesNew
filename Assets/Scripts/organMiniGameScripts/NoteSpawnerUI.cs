@@ -15,6 +15,7 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     [Header("A")]
     public GameObject notePrefab;
     public Transform[] columns;
+    public organCapsuleTrigger triggerCapsule;
 
     public string[] keysTexts = { "W", "A", "S", "D", "\u2190", "\u2191", "\u2192", "\u2193" };
 
@@ -25,7 +26,7 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
 
     private float points;
 
-[Header("C")]
+    [Header("C")]
     public Note noteScript;
 
     public TMP_Text pointsText;
@@ -34,6 +35,8 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     private bool SPointsBool = false;
     private bool TPointsBool = false;
     private bool FoPointsBool = false;
+    private bool escapeMenuOpen = false;
+    private float beforeEscInterval;
 
     [Header("D")]
     public TMP_Text fBadge;
@@ -52,6 +55,8 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     public Image fillingImage;
 
     public GameObject fullPointsPanel;
+    public GameObject escapeMenuOrgan;
+    public playerDetector playerDetector;
 
     // public Note Note { get => note; set => note = value; };
 
@@ -71,6 +76,14 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
         {
             PhotonNetwork.Instantiate("organGameManager", Vector3.zero, Quaternion.identity);
+        }
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            openEscMenu();
         }
     }
 
@@ -170,7 +183,7 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
             {
                 fillingImage.fillAmount = points / 400f;
             }
-            
+
         }
     }
 
@@ -243,6 +256,35 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     public void quitAfterFullPoints()
     {
         Destroy(canvas);
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        if (playerDetector.playerController == null)
+        {
+            playerDetector.playerControllerSingle.moveSpeed = 15;
+        }
+        else
+        {
+            playerDetector.playerController.moveSpeed = 15;
+        }
+    }
+
+    public void openEscMenu()
+    {
+        beforeEscInterval = spawnInterval;
+        spawnInterval = 60;
+        RestartSpawn();
+        DestroyAllWithTag();
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+        escapeMenuOrgan.SetActive(true);
+        escapeMenuOpen = true;
+    }
+
+    public void resumeEscapeMenu()
+    {
+        escapeMenuOrgan.SetActive(false);
+        spawnInterval = beforeEscInterval;
+        RestartSpawn();
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
     }
