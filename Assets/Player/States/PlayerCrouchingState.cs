@@ -24,14 +24,14 @@ public class PlayerCrouchingState : PlayerState
     public override void Enter()
     {
         Debug.Log("Crouching durumuna girildi.");
-
-        originalMoveSpeed = player.moveSpeed;
+        player.isSprinting = false;
+        originalMoveSpeed = player.baseWalkSpeed;
         originalControllerHeight = player.controller.height; // CharacterController'ın yüksekliğini al
         originalControllerCenter = player.controller.center;
         originalCameraYPosition = player.cameraRoot.localPosition.y; // Kameranın mevcut Y pozisyonunu al
 
         // Çömelme hızını ve yüksekliğini ayarla
-        player.moveSpeed *= crouchSpeedMultiplier;
+        player.baseWalkSpeed *= crouchSpeedMultiplier;
         player.controller.height = crouchHeight;
         player.controller.center = Vector3.up * (crouchHeight / 2f); // Merkez noktasını da ayarla
 
@@ -94,7 +94,7 @@ public class PlayerCrouchingState : PlayerState
     public override void Exit()
     {
         Debug.Log("Crouching durumundan çıkıldı.");
-        player.moveSpeed = originalMoveSpeed; // Hızı eski haline getir
+        player.baseWalkSpeed = originalMoveSpeed; // Hızı eski haline getir
 
         // Karakter kontrol yüksekliğini ve merkezini eski haline getir
         player.controller.height = originalControllerHeight;

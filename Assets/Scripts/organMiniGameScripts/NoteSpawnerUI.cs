@@ -264,7 +264,7 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         }
         else
         {
-            playerDetector.playerController.moveSpeed = 15;
+            playerDetector.playerController.isMovementFrozen = false;
         }
     }
 

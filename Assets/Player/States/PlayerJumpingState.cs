@@ -25,7 +25,6 @@ public class PlayerJumpingState : PlayerState
         {
             // Yere indikten sonra hangi duruma geçeceğine karar ver
             Vector3 horizontalMove = player.GetInputMoveVector();
-
             // 1. Çömelerek İniş
             if (Input.GetKeyDown(KeyCode.LeftControl)) // Tuşa basılı tutuyorsa
             {
@@ -53,6 +52,8 @@ public class PlayerJumpingState : PlayerState
                 fsm.ChangeState(typeof(PlayerIdleState));
                 return;
             }
+            player.isSprinting = false;
+
         }
     }
 

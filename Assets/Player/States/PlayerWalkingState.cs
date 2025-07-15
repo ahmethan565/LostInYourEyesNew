@@ -8,6 +8,8 @@ public class PlayerWalkingState : PlayerState
     public override void Enter()
     {
         Debug.Log("Walking durumuna girildi.");
+        player.isSprinting = false;
+
         // Yürüme animasyonunu başlat (eğer varsa)
         // player.animator.SetBool("IsWalking", true);
         // player.animator.SetBool("IsIdle", false);
