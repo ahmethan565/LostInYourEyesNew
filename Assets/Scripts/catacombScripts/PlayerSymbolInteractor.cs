@@ -19,12 +19,15 @@ public class PlayerSymbolInteractor : MonoBehaviour
 
     void TryPickupOrPlace()
     {
-        Ray ray = new Ray(transform.position, transform.forward);
+        Vector3 origin = transform.position;
+        Vector3 direction = transform.forward;
+        float sphereRadius = 0.5f;
 
-        //Bu satır silinebilir sadece draw ediyort mu etmiyor mu görmek için
-        Debug.DrawRay(ray.origin, ray.direction * interactDistance, Color.green, 1f);
+        // Ray ray = new Ray(transform.position, transform.forward);
 
-        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance))
+        Debug.DrawRay(origin, direction * interactDistance, Color.green, 1f);
+
+        if (Physics.SphereCast(origin, sphereRadius, direction, out RaycastHit hit, interactDistance))
         {
             if (heldSymbol == null && hit.collider.TryGetComponent(out SymbolObject symbol))
             {
@@ -35,7 +38,7 @@ public class PlayerSymbolInteractor : MonoBehaviour
                 Debug.Log("Sembol Alındı");
             }
 
-            if (heldSymbol != null && hit.collider.CompareTag("TableReceiver"))
+            else if (heldSymbol != null && hit.collider.CompareTag("TableReceiver"))
             {
                 bool placed = TableReceiver.Instance.TryPlaceSymbol(heldSymbol);
                 if (placed)

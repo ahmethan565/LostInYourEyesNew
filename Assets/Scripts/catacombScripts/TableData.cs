@@ -4,5 +4,6 @@ using UnityEngine;
 public class TableData : ScriptableObject
 {
     public Texture tableTexture;
-    public Texture[] symbolTextures;   
+    public Texture[] symbolTextures;
+    public Texture[] correctTextures;
 }

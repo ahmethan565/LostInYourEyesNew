@@ -21,7 +21,7 @@ public class TableReceiver : MonoBehaviour
     public void ShowSelectedTable(TableData data)
     {
         tableRenderer.material.mainTexture = data.tableTexture;
-        catacombPuzzleChecker.Instance.SetCorrectSymbols(data.symbolTextures);
+        catacombPuzzleChecker.Instance.SetCorrectSymbols(data.correctTextures);
     }
 
     public bool TryPlaceSymbol(Texture symbolTexture)

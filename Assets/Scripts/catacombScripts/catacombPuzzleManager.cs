@@ -9,6 +9,8 @@ public class catacombPuzzleManager : MonoBehaviourPunCallbacks
     public GameObject tablePrefab;
     public Transform[] spawnPoints;
 
+    public float waitTime = 3;
+
     private TableData[] allTables;
     private TableData selectedTable;
 
@@ -29,7 +31,7 @@ public class catacombPuzzleManager : MonoBehaviourPunCallbacks
 
     IEnumerator StartGame()
     {
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(waitTime);
         if (PhotonNetwork.IsMasterClient)
         {
             LoadAndSpawnTables();
