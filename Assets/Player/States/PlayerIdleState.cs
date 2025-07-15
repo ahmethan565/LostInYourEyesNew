@@ -8,6 +8,7 @@ public class PlayerIdleState : PlayerState
     public override void Enter()
     {
         Debug.Log("Idle durumuna girildi.");
+        player.isSprinting = false;
         // Idle durumuna özgü başlatma işlemleri
     }
 

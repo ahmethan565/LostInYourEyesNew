@@ -1,5 +1,3 @@
-using ExitGames.Client.Photon.StructWrapping;
-using Photon.Realtime;
 using UnityEngine;
 
 public class organCapsuleTriggerScript : MonoBehaviour
@@ -7,9 +5,7 @@ public class organCapsuleTriggerScript : MonoBehaviour
     public Canvas organCanvas;
     private bool organPlayed = false;
 
-    public Player player;
-    private float playerSpeed = 10;
-    public playerDetector playerDetector;
+    public playerDetector playerDetector; // Oyuncuyu tespit eden script
 
     private void OnTriggerEnter(Collider other)
     {
@@ -18,19 +14,23 @@ public class organCapsuleTriggerScript : MonoBehaviour
             Instantiate(organCanvas);
             organPlayed = true;
 
-            if (other.GetComponent<FPSPlayerController>() != null)
+            // FPSPlayerController mı yoksa FPSPlayerControllerSingle mı?
+            var controller = other.GetComponent<FPSPlayerController>();
+            if (controller != null)
             {
-                other.GetComponent<FPSPlayerController>().moveSpeed = 0;
-                playerSpeed = other.GetComponent<FPSPlayerController>().moveSpeed;
-                Debug.Log(playerSpeed);
-                playerDetector.playerController = other.GetComponent<FPSPlayerController>();
+                controller.isMovementFrozen = true; // 🔑 input'u dondur
+                playerDetector.playerController = controller;
+                Debug.Log("Movement frozen for multiplayer controller");
+                return; // Bitti
             }
-            if (other.GetComponent<FPSPlayerControllerSingle>() != null)
+
+            var controllerSingle = other.GetComponent<FPSPlayerControllerSingle>();
+            if (controllerSingle != null)
             {
-                other.GetComponent<FPSPlayerControllerSingle>().moveSpeed = 0;
-                playerSpeed = other.GetComponent<FPSPlayerControllerSingle>().moveSpeed;
-                playerDetector.playerControllerSingle = other.GetComponent<FPSPlayerControllerSingle>();
-                Debug.Log(playerDetector.playerControllerSingle);
+                controllerSingle.moveSpeed = 0f; // 🔑 input'u dondur
+                playerDetector.playerControllerSingle = controllerSingle;
+                Debug.Log("Movement frozen for single player controller");
+                return;
             }
         }
     }

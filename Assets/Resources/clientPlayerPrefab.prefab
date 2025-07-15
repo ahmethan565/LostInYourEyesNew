@@ -952,10 +952,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentState: 
-  moveSpeed: 8
+  isMovementFrozen: 0
+  baseWalkSpeed: 8
+  baseSprintSpeed: 15
+  isSprinting: 0
   jumpForce: 3
   gravityValue: -20
-  sprintSpeed: 14
+  maxSlopeAngle: 45
+  airControlFactor: 0.5
   crouchHeight: 1
   crouchSpeedMultiplier: 0.5
   crouchCameraOffset: -0.5
