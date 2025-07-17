@@ -10,7 +10,6 @@ public class ComboManager : MonoBehaviour
 
     [Header("Effect Settings")]
     public Transform[] effectPositions;           // Efektin gösterileceği pozisyonlar
-    public GameObject comboEffectPrefab;          // Efekt prefabı
 
     [Header("Debug")]
     public int currentCombo = 0;
