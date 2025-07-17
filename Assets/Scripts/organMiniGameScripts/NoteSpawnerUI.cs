@@ -7,6 +7,8 @@ using System.Collections;
 using Photon.Pun;
 using Photon.Realtime;
 using ExitGames.Client.Photon;
+using DG.Tweening;
+using System.Collections.Generic;
 
 public class NoteSpawnerUI : MonoBehaviourPunCallbacks
 {
@@ -104,6 +106,28 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
 
         StartCoroutine(UpdateSpawnInterval());
     }
+    [Header("Effect Images")]
+    public List<Image> effectImages; // Inspector'da atayacağın Image'lar
+
+    /// <summary>
+    /// Doğru/yanlış durumuna göre renk efekti uygular.
+    /// </summary>
+    /// <param name="isCorrect">Doğru ise true, yanlış ise false</param>
+    public void PlayEffectOnImages(bool isCorrect)
+    {
+        Color effectColor = isCorrect ? Color.green : Color.red;
+        float duration = 0.4f;
+
+        foreach (var img in effectImages)
+        {
+            if (img == null) continue;
+
+            // Renk animasyonunu yap, önce efektColor sonra eski renk (Yoyo)
+            img.DOColor(effectColor, duration / 2).SetLoops(2, LoopType.Yoyo);
+        }
+    }
+
+
 
     IEnumerator UpdateSpawnInterval()
     {

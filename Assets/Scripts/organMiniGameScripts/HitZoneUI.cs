@@ -11,29 +11,28 @@ public class HitZoneUI : MonoBehaviour
 
     void Update()
     {
-        // Debug.Log("A");
         if (Input.anyKeyDown)
         {
-            // Debug.Log("A");
             foreach (Transform child in transform.parent)
             {
                 var note = child.GetComponent<Note>();
                 if (note == null) continue;
-                
-                if (WasCorrectKeyPressed(note.assignedKey)) 
-                {   
+
+                if (WasCorrectKeyPressed(note.assignedKey))
+                {
                     float distance = Mathf.Abs(child.localPosition.y - transform.localPosition.y);
                     if (distance < 20f)
                     {
                         NoteSpawnerUI.Instance.AddPoints(addPoint);
                         FeedbackUIController.Instance?.ShowFeedback(Color.green, note.assignedKey);
-                        Destroy(child.gameObject);
+                        note.HandleHitEffect();  // Animasyonlu hit efekti
                         break;
                     }
                 }
             }
         }
     }
+
 
     bool WasCorrectKeyPressed(KeyType key)
     {
@@ -47,7 +46,7 @@ public class HitZoneUI : MonoBehaviour
             KeyType.Up => Input.GetKeyDown(KeyCode.UpArrow),
             KeyType.Right => Input.GetKeyDown(KeyCode.RightArrow),
             KeyType.Down => Input.GetKeyDown(KeyCode.DownArrow),
-            
+
             _ => false
         };
     }
