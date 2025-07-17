@@ -41,9 +41,6 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     private float beforeEscInterval;
 
     [Header("D")]
-    public TMP_Text fBadge;
-    public TMP_Text sBadge;
-    public TMP_Text tBadge;
 
     public GameObject youWon;
 
@@ -137,28 +134,28 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
             // spawnInterval = waitTime;
             // DestroyAllWithTag();
             // RestartSpawn();
-            fBadge.gameObject.SetActive(true);
+            //fBadge.gameObject.SetActive(true);
             Coin1.gameObject.SetActive(true);
             // yield return new WaitForSeconds(waitTime);
             spawnInterval = 0.8f;
             RestartSpawn();
             FPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            fBadge.gameObject.SetActive(false);
+            //fBadge.gameObject.SetActive(false);
         }
         else if (points >= 100 && SPointsBool == false)
         {
             // spawnInterval = waitTime;
             // DestroyAllWithTag();
             // RestartSpawn();
-            sBadge.gameObject.SetActive(true);
+            //sBadge.gameObject.SetActive(true);
             Coin2.gameObject.SetActive(true);
             // yield return new WaitForSeconds(waitTime);
             spawnInterval = 0.7f;
             RestartSpawn();
             SPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            sBadge.gameObject.SetActive(false);
+            //sBadge.gameObject.SetActive(false);
         }
 
         else if ((points == 200 && TPointsBool == false) || (points == 205 && TPointsBool == false))
@@ -166,14 +163,14 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
             // spawnInterval = waitTime;
             // DestroyAllWithTag();
             // RestartSpawn();
-            tBadge.gameObject.SetActive(true);
+            //tBadge.gameObject.SetActive(true);
             Coin3.gameObject.SetActive(true);
             // yield return new WaitForSeconds(waitTime);
             spawnInterval = 0.6f;
             RestartSpawn();
             TPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            tBadge.gameObject.SetActive(false);
+            //tBadge.gameObject.SetActive(false);
         }
 
         else if (points >= 400)
@@ -208,6 +205,15 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
                 fillingImage.fillAmount = points / 400f;
             }
 
+        }
+    }
+    public RectTransform canvasRectTransform;
+
+    public void ShakeScreen(float duration = 0.3f, float strength = 15f)
+    {
+        if (canvasRectTransform != null)
+        {
+            canvasRectTransform.DOShakePosition(0.5f, new Vector3(30f, 20f, 0f), vibrato: 20, randomness: 90);
         }
     }
 

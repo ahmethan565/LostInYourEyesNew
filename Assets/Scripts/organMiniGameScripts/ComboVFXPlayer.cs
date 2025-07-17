@@ -38,12 +38,16 @@ public class ComboVFXPlayer : MonoBehaviour
 
         // Fade in 0.3 saniyede
         img.DOFade(1f, 0.3f).SetUpdate(true);
+
+        // Hafif titreşim
+        transform.DOShakePosition(0.2f, 5f, vibrato: 10, randomness: 45).SetUpdate(true);
     }
+
 
     public void Stop()
     {
         effectSequence?.Kill();
-
+        ShakeScreen(0.2f, 4f);
         // Fade out yap, sonra kapat
         img.DOFade(0f, 0.3f).SetUpdate(true).OnComplete(() =>
         {
@@ -54,7 +58,12 @@ public class ComboVFXPlayer : MonoBehaviour
         });
     }
 
+    public void ShakeScreen(float duration = 0.3f, float strength = 15f)
+    {
 
+        this.transform.DOShakePosition(0.5f, new Vector3(30f, 20f, 0f), vibrato: 20, randomness: 90);
+
+    }
     void Update()
     {
         if (frames == null || frames.Length == 0) return;

@@ -51,6 +51,8 @@ public class Note : MonoBehaviour
         hasBeenMissed = true;
 
         NoteSpawnerUI.Instance.AddPoints(missPoint);
+        NoteSpawnerUI.Instance?.ShakeScreen(0.3f, 7f);
+
         FeedbackUIController.Instance?.ShowFeedback(Color.red, assignedKey);
         NoteSpawnerUI.Instance.PlayEffectOnImages(false);
 
@@ -65,6 +67,12 @@ public class Note : MonoBehaviour
 
             seq.Append(img.DOColor(Color.red, 0.15f).SetEase(Ease.OutQuad));
             seq.Join(transform.DORotate(new Vector3(0, 0, -15f), 0.25f).SetEase(Ease.OutBack));
+
+            // Burada ufak bir shake ekliyoruz, hem pozisyon hem rotasyon
+            seq.Append(transform.DOShakePosition(0.3f, strength: new Vector3(5f, 2f, 0f), vibrato: 10, randomness: 90));
+            seq.Join(transform.DOShakeRotation(0.3f, strength: 10f, vibrato: 10));
+
+
             seq.Append(transform.DOScale(1.1f, 0.2f).SetEase(Ease.OutBack));
             seq.Append(transform.DOScale(0.8f, 0.2f).SetEase(Ease.InBack));
             seq.Join(img.DOFade(0, 0.4f).SetEase(Ease.InQuad));
@@ -98,7 +106,7 @@ public class Note : MonoBehaviour
 
         Sequence seq = DOTween.Sequence();
 
-        seq.Append(img.DOColor(Color.green, 0.1f).SetEase(Ease.OutQuad));
+        //seq.Append(img.DOColor(Color.green, 0.1f).SetEase(Ease.OutQuad));
         seq.Append(transform.DOScale(originalScale * 1.4f, 0.2f).SetEase(Ease.OutBack));
         seq.Join(transform.DORotate(new Vector3(0, 0, 10f), 0.2f).SetEase(Ease.OutBack));
         seq.Append(transform.DOScale(originalScale * 0.9f, 0.15f).SetEase(Ease.InBack));
