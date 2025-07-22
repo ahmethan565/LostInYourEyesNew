@@ -16,12 +16,20 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
     [Header("Hareket Ayarları")]
     public bool isSprinting = false;
     public float jumpForce = 8f;
-    public float gravityValue = -20f;
+    // public float gravityValue = -20f; // Artık bir çarpanla kullanılacak
     [Tooltip("Yüksekliği bu değerden daha az olan eğimlerde karakter yukarı doğru hareket edebilir.")]
     public float maxSlopeAngle = 45f; // Karakterin çıkabileceği maksimum eğim açısı
     [Tooltip("Havada hareket ederken inputun ne kadar etkili olacağını belirler. 0 = hiç kontrol yok, 1 = tam kontrol.")]
     [Range(0f, 1f)]
     public float airControlFactor = 0.5f; // Havada hareket kontrolü çarpanı
+    [Tooltip("Karakterin düşebileceği maksimum hız. Mutlak bir değerdir, pozitif girilir.")]
+    public float maxFallSpeed = 30f; // Limit hız (Terminal Velocity) için eklendi
+
+    [Header("Yer Çekimi Ayarları")]
+    [Tooltip("Yer çekimi kuvvetinin temel değeri (genellikle negatif).")]
+    public float baseGravity = -20f; // Yer çekiminin temel değeri
+    [Tooltip("Yer çekimi kuvvetine uygulanacak çarpan. 1.0 varsayılan, daha büyük değerler daha hızlı ivmelenme sağlar.")]
+    public float gravityMultiplier = 1.0f; // Yer çekimi ivmesi çarpanı için eklendi
 
     [Header("Çömelme Ayarları")]
     public float crouchHeight = 1.0f; // Çömelme yüksekliği
@@ -62,7 +70,6 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
     void Awake()
     {
         controller = GetComponent<CharacterController>();
-        // Step offset'in ayarı doğrudan CharacterController component'i üzerindedir ve FSM gerektirmez.
         // controller.stepOffset = 0.3f; // İhtiyacınıza göre bu değeri ayarlayın
 
         if (!photonView.IsMine)
@@ -117,7 +124,6 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
                 MoveCharacter();
             }
 
-            // ✅ Her frame hız mantığını uygula
             UpdateMoveSpeed();
         }
         else
@@ -125,17 +131,16 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
             SmoothRemotePlayerData();
         }
     }
+
     private void UpdateMoveSpeed()
     {
         float targetSpeed = baseWalkSpeed;
 
-        // Eğer sprint ediyorsa sprint hızını kullan
         if (isSprinting)
         {
             targetSpeed = baseSprintSpeed;
         }
 
-        // Çömeliyorsa hız çarpanı uygula
         if (currentState.Contains("Crouching"))
         {
             targetSpeed *= crouchSpeedMultiplier;
@@ -144,13 +149,9 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
         currentSpeed = targetSpeed;
     }
 
-
-
-    // Karakterin bir objeye çarptığında çağrılır (Slope Projection için)
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
         _hitNormal = hit.normal;
-        // Eğer yere çarpıyorsak ve eğim açısı çok dik ise kayma bayrağını ayarla
         if (isGrounded)
         {
             float angle = Vector3.Angle(Vector3.up, _hitNormal);
@@ -188,19 +189,25 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
     {
         if (isGrounded)
         {
-            playerVelocity.y = Mathf.Sqrt(jumpForce * -2f * gravityValue);
+            playerVelocity.y = Mathf.Sqrt(jumpForce * -2f * (baseGravity * gravityMultiplier)); // Yer çekimi çarpanı kullanıldı
         }
     }
 
     public void ApplyGravity()
     {
+        // Yere yapışma mantığı
         if (isGrounded && playerVelocity.y < 0)
         {
-            // Yere yapışma: Karakter yere değdiğinde hafifçe aşağı doğru bir kuvvet uygular
-            // -0.5f gibi sabit, küçük bir negatif değer genellikle yeterlidir.
             playerVelocity.y = -0.5f;
         }
-        playerVelocity.y += gravityValue * Time.deltaTime;
+
+        // Yer çekimi ivmesini uygula
+        playerVelocity.y += (baseGravity * gravityMultiplier) * Time.deltaTime; // Yer çekimi çarpanı kullanıldı
+
+        // Limit hızı uygula: Karakterin y-hızı, belirlenen maksimum düşüş hızını geçmemeli
+        // maxFallSpeed pozitif bir değer olduğu için, playerVelocity.y negatif olduğundan
+        // Math.Max fonksiyonu daha az negatif (yani daha büyük) olan değeri seçecektir.
+        playerVelocity.y = Mathf.Max(playerVelocity.y, -maxFallSpeed); 
     }
 
     public void ApplyHorizontalMovement(Vector3 horizontalMove)
@@ -211,17 +218,9 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
 
     public void MoveCharacter()
     {
-        // GetInputMoveVector() şimdi sadece yönü döndürüyor, bu yüzden burada moveSpeed ile çarpıyoruz.
         Vector3 horizontalMovement = GetInputMoveVector() * currentSpeed;
-
-        // FSM durumları özel hızları (örn. sprintSpeed, crouchSpeedMultiplier)
-        // horizontalMovement üzerinde değiştirmelidir.
-        // Örneğin, PlayerRunningState içinde: horizontalMovement = GetInputMoveVector() * sprintSpeed;
-
         Vector3 totalMove = horizontalMovement;
 
-        // Eğimde hareket (Slope Projection)
-        // Eğer kaymıyorsak ve yere basıyorsak eğim projeksiyonunu uygula
         if (isGrounded && !isSlidingSlope)
         {
             totalMove = ProjectMoveOnSlope(horizontalMovement, _hitNormal);
@@ -235,15 +234,10 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
         }
     }
 
-    // Eğim üzerinde hareketi yansıtan metod
     private Vector3 ProjectMoveOnSlope(Vector3 moveVector, Vector3 slopeNormal)
     {
-        // Hareket vektörünü eğim normaline dik olacak şekilde yansıtır.
-        // Burada .normalized * moveVector.magnitude kısmını kaldırıyoruz.
-        // ProjectOnPlane zaten doğru uzunlukta bir vektör döndürmelidir.
         return Vector3.ProjectOnPlane(moveVector, slopeNormal);
     }
-
 
     // --- Mevcut Diğer Metotlar (Aynı Kalır) ---
     void SetupLocalPlayerCamera()
@@ -311,14 +305,16 @@ public class FPSPlayerController : MonoBehaviourPun, IPunObservable
             stream.SendNext(transform.position);
             stream.SendNext(transform.rotation);
             stream.SendNext(xRotation);
-            stream.SendNext(isSlidingSlope); // isSlidingSlope bayrağını ağ üzerinden gönder
+            stream.SendNext(isSlidingSlope);
+            stream.SendNext(playerVelocity.y); // PlayerVelocity.y'yi de senkronize edelim
         }
         else
         {
             networkPosition = (Vector3)stream.ReceiveNext();
             networkRotation = (Quaternion)stream.ReceiveNext();
             network_xRotation = (float)stream.ReceiveNext();
-            isSlidingSlope = (bool)stream.ReceiveNext(); // isSlidingSlope bayrağını ağ üzerinden al
+            isSlidingSlope = (bool)stream.ReceiveNext();
+            playerVelocity.y = (float)stream.ReceiveNext(); // Uzak oyuncular için y hızını da al
         }
     }
 }
