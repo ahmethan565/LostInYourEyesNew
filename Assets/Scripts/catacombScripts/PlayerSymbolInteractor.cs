@@ -2,8 +2,11 @@ using UnityEngine;
 
 public class PlayerSymbolInteractor : MonoBehaviour
 {
+    public GameObject dropSymbolPrefab;
     public float interactDistance = 2f;
     public KeyCode pickupKey = KeyCode.E;
+    public KeyCode undoKey = KeyCode.R;
+    public KeyCode dropKey = KeyCode.Q;
 
     private Texture heldSymbol = null;
 
@@ -13,8 +16,21 @@ public class PlayerSymbolInteractor : MonoBehaviour
         {
             Debug.Log("A");
             TryPickupOrPlace();
-            
+
         }
+
+        if (Input.GetKeyDown(undoKey))
+        {
+            Debug.Log("Undo Try");
+            UndoLastPlacement();
+        }
+
+        if (Input.GetKeyDown(dropKey))
+        {
+            Debug.Log("dropping");
+            DropHeldSymbol();
+        }
+
     }
 
     void TryPickupOrPlace()
@@ -55,11 +71,33 @@ public class PlayerSymbolInteractor : MonoBehaviour
                 //     heldSymbol = null;
                 // }
 
-                    // else
-                    // {
-                    //     Debug.Log("Slot Dolu");
-                    // }
+                // else
+                // {
+                //     Debug.Log("Slot Dolu");
+                // }
             }
         }
+    }
+
+    void UndoLastPlacement()
+    {
+        if (heldSymbol == null && TableReceiver.Instance.CanUndo())
+        {
+            heldSymbol = TableReceiver.Instance.UndoLastPlacement();
+            Debug.Log("geri aldın");
+        }
+    }
+
+    void DropHeldSymbol()
+    {
+        if (heldSymbol == null) return;
+
+        Vector3 dropPosition = transform.position + transform.forward * 1f + Vector3.up * 0.5f;
+        GameObject dropped = Instantiate(dropSymbolPrefab, dropPosition, Quaternion.identity);
+        dropped.GetComponentInChildren<MeshRenderer>().material.mainTexture = heldSymbol;
+
+        heldSymbol = null;
+
+        Debug.Log("dropped");
     } 
 }

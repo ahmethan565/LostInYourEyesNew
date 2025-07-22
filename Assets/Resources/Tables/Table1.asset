@@ -17,4 +17,7 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 1025b5143048b124ea53a1ce15eca67d, type: 3}
   - {fileID: 2800000, guid: f52932809cac9914383ff64c91559982, type: 3}
   - {fileID: 2800000, guid: c021bc37515d257448436860b98f9b80, type: 3}
-  correctTextures: []
+  correctTextures:
+  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
+  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
+  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
