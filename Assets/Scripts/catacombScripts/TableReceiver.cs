@@ -23,6 +23,10 @@ public class TableReceiver : MonoBehaviour
     private bool isOpening = false;
     private Vector3 initialPosition;
     private Vector3 targetPosition;
+    private Vector3 selectedTableTransform;
+    public GameObject selectedTableRun;
+
+    private TableDisplay selectedDisplay;
 
     void Awake()
     {
@@ -32,7 +36,7 @@ public class TableReceiver : MonoBehaviour
     void Start()
     {
         initialPosition = transform.position;
-        targetPosition = initialPosition + new Vector3(0f, 2f, 0f);
+        targetPosition = initialPosition + new Vector3(0f, 6f, 0f);
     }
 
     void Update()
@@ -47,6 +51,16 @@ public class TableReceiver : MonoBehaviour
     {
         tableRenderer.material.mainTexture = data.tableTexture;
         catacombPuzzleChecker.Instance.SetCorrectSymbols(data.correctTextures);
+        selectedTableTransform = data.tableTransform.position + data.tableTransform.forward * 1.2f;
+        selectedTableTransform -= new Vector3(0f, 6f, 0f);
+
+        TableDisplay[] displays = FindObjectsOfType<TableDisplay>();
+        foreach (var display in displays)
+            if (display.GetTableData() == data)
+            {
+                selectedDisplay = display;
+                break;
+            }
     }
 
     public bool TryPlaceSymbol(Texture symbolTexture)
@@ -75,6 +89,13 @@ public class TableReceiver : MonoBehaviour
             {
                 Instantiate(solvedRunPrefab, runPosition.position, UnityEngine.Quaternion.identity);
                 isOpening = true;
+
+                Instantiate(selectedTableRun, selectedTableTransform, UnityEngine.Quaternion.identity);
+                UnityEngine.Debug.Log("Seçilen tablonun arkasına obje yerleştiridli");
+                if (selectedDisplay != null)
+                {
+                    selectedDisplay.TriggerMoveUp();
+                }
             }
         }
 

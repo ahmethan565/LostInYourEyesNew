@@ -150,7 +150,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5e18df8d23e9c97468f8dbfec8092d2c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -48.68
+      value: -42.12
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5e18df8d23e9c97468f8dbfec8092d2c, type: 3}
       propertyPath: m_LocalPosition.z
@@ -257,6 +257,7 @@ MonoBehaviour:
   symbolVisualPrefab: {fileID: 2805279538365639587, guid: 4d2fbf141411d8b43b17aceff7cc7a62, type: 3}
   solvedRunPrefab: {fileID: 919132149155446097, guid: 77c4d8677c347a74a948591b11153d3f, type: 3}
   runPosition: {fileID: 5822508802285594145}
+  openSpeed: 1
 --- !u!65 &5951721244043860896
 BoxCollider:
   m_ObjectHideFlags: 0

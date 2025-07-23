@@ -1,6 +1,7 @@
 using UnityEngine;
 using Photon.Pun;
 using System.Collections;
+using System.Data.Common;
 
 public class catacombPuzzleManager : MonoBehaviourPunCallbacks
 {
@@ -53,6 +54,8 @@ public class catacombPuzzleManager : MonoBehaviourPunCallbacks
             GameObject table = Instantiate(tablePrefab, spawnPoints[i].position, spawnPoints[i].rotation);
             TableDisplay display = table.GetComponent<TableDisplay>();
             display.Setup(allTables[i]);
+
+            allTables[i].tableTransform = table.transform;
         }
 
         //rastgele tablo seçimi
