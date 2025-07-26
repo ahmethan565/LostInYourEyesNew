@@ -1,52 +1,125 @@
+// RuneSlot.cs
 using UnityEngine;
 using Photon.Pun;
-using Photon.Realtime;
+using Photon.Realtime; // Player sınıfı için gerekli
 
-public class RuneSlot : MonoBehaviourPun, IInteractable
+public class RuneSlot : MonoBehaviourPun, IInteractable, IPunObservable
 {
     public string requiredRuneID;
     public Transform runePlacementPoint; // Rün’ün yerleştirileceği pozisyon
-    private bool _isCompleted = false;
 
-    public bool isCompleted
+    private bool _isAnyRunePlaced = false;
+    private bool _isCorrectRunePlaced = false;
+
+    public bool IsCorrectRunePlaced
     {
-        get { return _isCompleted; }
+        get { return _isCorrectRunePlaced; }
         private set
         {
-            _isCompleted = value;
-            UpdateVisualState(); // Görsel durumu güncelle
+            _isCorrectRunePlaced = value;
+            UpdateVisualState(); // Rün doğru yerleştirildiğinde veya alındığında görsel durumu günceller
         }
     }
 
     public RunePuzzleController puzzleController;
     private GameObject currentPlacedRune = null; // Yerleştirilen rün GameObject'i
 
+    [Header("Sound Settings")]
+    public AudioClip wrongRuneSound;
+    public AudioClip correctRuneSound; // Doğru rün yerleştirildiğinde çalacak ses
+    private AudioSource audioSource;
+
+    private void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 1.0f; // 3D ses için
+        }
+        UpdateVisualState(); // Başlangıçta slotun rengini ayarlar
+    }
+
     private void UpdateVisualState()
     {
-        // Slotun görsel durumunu burada güncelle (örn. renk değiştirme, ışık yanması)
-        // Renderer renderer = GetComponent<Renderer>();
-        // if (renderer)
-        // {
-        //     renderer.material.color = _isCompleted ? Color.green : Color.red;
-        // }
+        Renderer renderer = GetComponent<Renderer>();
+        if (renderer)
+        {
+            if (_isAnyRunePlaced)
+            {
+                // Rün yerleştirilmişse, doğru olup olmadığına göre renk ayarlar
+                renderer.material.color = _isCorrectRunePlaced ? Color.green : Color.red;
+            }
+            else
+            {
+                // Rün yerleştirilmemişse gri renk
+                renderer.material.color = Color.gray;
+            }
+        }
     }
 
     public string GetInteractText()
     {
-        return isCompleted ? "Rune placed" : $"Place {requiredRuneID}";
+        // Eğer rün yerleştirilmişse
+        if (_isAnyRunePlaced)
+        {
+            // Eğer doğru rün yerleştirilmişse, geri alma seçeneği gösterme
+            if (IsCorrectRunePlaced)
+            {
+                return $"Rune placed: {requiredRuneID}"; // Sadece bilgi göster
+            }
+            else
+            {
+                return "Take back Rune (E)"; // Yanlış rün yerleşmişse geri alma seçeneği
+            }
+        }
+        else
+        {
+            return $"Place {requiredRuneID} (E)"; // Slot boşsa yerleştirme seçeneği
+        }
     }
 
     public void Interact()
     {
-        Debug.Log("Bu rün slotuna bir rün yerleştirilebilir. (Interact called)");
+        // Eğer slot doluysa (herhangi bir rünle), geri alma işlemini başlat
+        if (_isAnyRunePlaced)
+        {
+            // Doğru rün yerleştirilmişse geri almayı engelle
+            if (IsCorrectRunePlaced)
+            {
+                Debug.Log("Correct rune is placed, cannot take it back.");
+                return; // Geri alma işlemini durdur
+            }
+
+            // Envanter dolu mu kontrolü: Eğer envanter doluysa geri almayı engelle
+            if (InventorySystem.Instance != null && InventorySystem.Instance.IsHoldingItem())
+            {
+                Debug.Log("Inventory is full. Cannot take back rune.");
+                // Oyuncuya bir UI mesajı gösterebilirsiniz.
+                return;
+            }
+
+            // Envanter boşsa ve yanlış rün varsa, rünü geri alma isteğini gönder
+            RequestTakeBackRune(PhotonNetwork.LocalPlayer.ActorNumber);
+        }
+        else
+        {
+            Debug.Log("Slot is empty, cannot take back a rune.");
+        }
     }
 
     public void InteractWithItem(GameObject heldItemGO)
     {
-        if (isCompleted || heldItemGO == null) return;
+        // Slot zaten doluysa, elde item yoksa veya doğru rün yerleştirilmişse işlem yapma.
+        if (_isAnyRunePlaced || heldItemGO == null || IsCorrectRunePlaced) return;
 
         ItemPickup pickup = heldItemGO.GetComponent<ItemPickup>();
-        if (pickup == null || pickup.itemID != requiredRuneID) return;
+        if (pickup == null)
+        {
+            Debug.LogError("Held item does not have an ItemPickup component.");
+            return;
+        }
 
         PhotonView heldItemPV = heldItemGO.GetComponent<PhotonView>();
         if (heldItemPV == null)
@@ -55,51 +128,33 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
             return;
         }
 
-        // Eğer RuneSlot'un sahibi değilsek, sahibi olan istemciye RPC gönder.
-        // Bu RPC, rünü yerleştiren oyuncunun ActorNumber'ını da taşıyacak.
+        // Slotun sahibi değilsek, RPC ile sahibine bildir.
         if (!photonView.IsMine)
         {
-            photonView.RPC("RPC_RequestRunePlacement", photonView.Owner, heldItemPV.ViewID, PhotonNetwork.LocalPlayer.ActorNumber);
-            return; // Kendi InteractWithItem() metodundan çık, işi sahibine bırak.
+            photonView.RPC("RPC_RequestRunePlacement", photonView.Owner, heldItemPV.ViewID, pickup.itemID, PhotonNetwork.LocalPlayer.ActorNumber);
+            return;
         }
 
-        // Eğer RuneSlot'un sahibiysek, doğrudan rünü yerleştirme işlemini başlat.
-        // Bu durumda, rünü yerleştiren oyuncu biziz (PhotonNetwork.LocalPlayer).
-        ProcessRunePlacement(heldItemGO, PhotonNetwork.LocalPlayer.ActorNumber);
+        // Slotun sahibiysek, işlemi doğrudan başlat.
+        ProcessRunePlacement(heldItemGO, pickup.itemID, PhotonNetwork.LocalPlayer.ActorNumber);
     }
 
-    // Bu RPC, rün slotunun sahibine rün yerleştirme isteğini iletir.
     [PunRPC]
-    void RPC_RequestRunePlacement(int heldItemViewID, int placingPlayerActorNumber, PhotonMessageInfo info)
+    void RPC_RequestRunePlacement(int heldItemViewID, string heldItemItemID, int placingPlayerActorNumber, PhotonMessageInfo info)
     {
-        // Bu kod sadece RuneSlot'un sahibi olan istemcide çalışır.
         GameObject heldItemGO = PhotonView.Find(heldItemViewID)?.gameObject;
-
         if (heldItemGO == null)
         {
             Debug.LogError($"RPC_RequestRunePlacement: Could not find held item with ViewID {heldItemViewID}");
             return;
         }
-
-        ItemPickup pickup = heldItemGO.GetComponent<ItemPickup>();
-        if (pickup == null || pickup.itemID != requiredRuneID)
-        {
-            Debug.LogWarning($"RPC_RequestRunePlacement: Incorrect item ID or no ItemPickup found. Expected {requiredRuneID}, got {pickup?.itemID}.");
-            return;
-        }
-
-        // Yetkilendirme kontrolünden sonra rünü yerleştirme sürecini başlat.
-        ProcessRunePlacement(heldItemGO, placingPlayerActorNumber);
+        ProcessRunePlacement(heldItemGO, heldItemItemID, placingPlayerActorNumber);
     }
 
-    // Rünü yerleştirme ana mantığını içeren metod.
-    // Bu metod sadece RuneSlot'un sahibi olan istemcide çalışır.
-    void ProcessRunePlacement(GameObject heldItemGO, int placingPlayerActorNumber)
+    void ProcessRunePlacement(GameObject heldItemGO, string heldItemItemID, int placingPlayerActorNumber)
     {
-        if (isCompleted || heldItemGO == null) return;
-
-        ItemPickup pickup = heldItemGO.GetComponent<ItemPickup>();
-        if (pickup == null || pickup.itemID != requiredRuneID) return;
+        // Slot zaten doluysa veya doğru rün yerleştirilmişse tekrar işlem yapma.
+        if (_isAnyRunePlaced || IsCorrectRunePlaced || heldItemGO == null) return;
 
         PhotonView heldItemPV = heldItemGO.GetComponent<PhotonView>();
         if (heldItemPV == null)
@@ -108,37 +163,46 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
             return;
         }
 
-        isCompleted = true; // Slotu tamamlandı olarak işaretle
-        currentPlacedRune = heldItemGO; // Referans tut
-
-        // Rünü tüm istemcilerde görsel olarak yerleştir ve parent'la.
+        // Rünü tüm istemcilerde görsel olarak slota yerleştir
         photonView.RPC("RPC_PlaceRuneVisuals", RpcTarget.AllBuffered, heldItemPV.ViewID);
 
-        // Rünü yerleştiren oyuncunun kendi envanter sistemine RPC göndererek item'ı silmesini emret.
+        // Rünün doğru olup olmadığını kontrol et
+        if (heldItemItemID == requiredRuneID)
+        {
+            IsCorrectRunePlaced = true; // Setter UpdateVisualState'i çağırır
+            Debug.Log($"Correct rune '{requiredRuneID}' placed in slot {gameObject.name}.");
+            // Doğru rün sesi çal
+            if (audioSource != null && correctRuneSound != null)
+            {
+                audioSource.PlayOneShot(correctRuneSound);
+            }
+        }
+        else
+        {
+            IsCorrectRunePlaced = false; // Setter UpdateVisualState'i çağırır
+            // Yanlış rün sesi çal
+            if (audioSource != null && wrongRuneSound != null)
+            {
+                audioSource.PlayOneShot(wrongRuneSound);
+            }
+            Debug.LogWarning($"Incorrect rune '{heldItemItemID}' placed in slot {gameObject.name}. Expected '{requiredRuneID}'.");
+        }
+
+        _isAnyRunePlaced = true;
+        currentPlacedRune = heldItemGO; // Yerleştirilen rünü kaydet
+
+        // Rünü yerleştiren oyuncunun envanterinden item'ı düşürmesini iste
         Player placingPlayer = PhotonNetwork.CurrentRoom.GetPlayer(placingPlayerActorNumber);
         if (placingPlayer != null)
         {
-            // Bu RPC, ilgili oyuncunun kendi envanter sistemi tarafından alınacak ve işlenecek.
-            // Varsayım: InventorySystem.Instance'a erişim, oyuncunun sahip olduğu bir PhotonView üzerinden.
-            // Eğer InventorySystem bir Singleton ise ve her oyuncu kendi InventorySystem.Instance'ını kullanıyorsa:
-            // Bu RPC, InventorySystem'ın kendi PhotonView'ı varsa InventorySystem'dan çağrılabilir.
-            // Ya da oyuncu karakteri üzerinde InventoryManager adında bir PhotonView'lı script varsa.
-
-            // En basit senaryo: Her oyuncunun kendi InventorySystem.Instance'ı vardır ve bu RPC'yi alabilir.
-            // Bu RPC'nin doğru InventorySystem.Instance'a ulaşması için ya RpcTarget.AllBuffer ve if (photonView.IsMine)
-            // kontrolü ya da hedef oyuncuya özel bir PhotonView üzerinden çağrı.
-            // En güvenlisi: Oyuncunun Player objesi üzerinde bulunan bir InventorySync component'i üzerinden çağrı.
-            // Örnek: PhotonView.Find(placingPlayerInventoryViewID).RPC("RPC_ForceDropItem");
-            // Geçici çözüm olarak, basitçe tüm istemcilere gönderip, sadece doğru oyuncunun işleme almasını sağlayabiliriz.
             photonView.RPC("RPC_TriggerForceDrop", placingPlayer);
         }
 
-        // Puzzle sistemine bildir (başarılı yerleştirmeden sonra)
+        // PuzzleController'a rün yerleştirildiğini bildir (puzzle durumunu kontrol etmesi için)
         if (puzzleController != null)
             puzzleController.NotifyRunePlaced();
     }
 
-    // Rünün görsel yerleştirmesini ve transform ayarlarını tüm istemcilerde senkronize eden RPC.
     [PunRPC]
     void RPC_PlaceRuneVisuals(int runeViewID)
     {
@@ -149,15 +213,13 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
             return;
         }
 
-        Vector3 originalScale = runeGO.transform.lossyScale;
+        Vector3 originalScale = runeGO.transform.lossyScale; // Orijinal dünya ölçeğini koru
+        runeGO.transform.SetParent(runePlacementPoint, false); // Slotun altına parent yap
+        SetWorldScale(runeGO.transform, originalScale); // Dünya ölçeğini tekrar ayarla
+        runeGO.transform.localPosition = Vector3.zero; // Lokal pozisyonu sıfırla
+        runeGO.transform.localRotation = Quaternion.identity; // Lokal rotasyonu sıfırla
 
-        runeGO.transform.SetParent(runePlacementPoint, false);
-
-        SetWorldScale(runeGO.transform, originalScale);
-
-        runeGO.transform.localPosition = Vector3.zero;
-        runeGO.transform.localRotation = Quaternion.identity;
-
+        // Rün slota yerleşince collider ve rigidbody'yi kapat
         Collider col = runeGO.GetComponent<Collider>();
         if (col) col.enabled = false;
 
@@ -168,29 +230,19 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
             rb.useGravity = false;
         }
 
-        isCompleted = true; // Setter aracılığıyla görsel güncellemeyi tetikler
-        currentPlacedRune = runeGO; // Tüm istemcilerde referansı güncelle
+        _isAnyRunePlaced = true;
+        currentPlacedRune = runeGO; // Yerleştirilen rünü senkronize et
 
         Debug.Log($"Rune {runeGO.name} (ID: {runeViewID}) visually placed in slot {gameObject.name} on all clients.");
     }
 
-    // Bu RPC, rünü yerleştiren oyuncunun kendi InventorySystem.Instance.ForceDropItem() metodunu tetikleyecek.
     [PunRPC]
     void RPC_TriggerForceDrop(PhotonMessageInfo info)
     {
-        // Bu RPC, yalnızca rünü yerleştiren oyuncu üzerinde çalışır (RpcTarget o oyuncu olduğu için).
-        // info.Sender, bu RPC'yi çağıran oyuncuyu (yani RuneSlot'un sahibini) temsil eder.
-        // Bizim için önemli olan, bu kodun hangi istemcide çalıştığıdır.
-
-        Debug.Log($"Received RPC_TriggerForceDrop on player {PhotonNetwork.LocalPlayer.NickName} (ID: {PhotonNetwork.LocalPlayer.ActorNumber})");
-
-        // Eğer InventorySystem.Instance mevcutsa ve bu istemciye aitse, ForceDropItem'ı çağır.
-        // Bu, InventorySystem'ın doğru bir şekilde tekil olarak ayarlandığını varsayar.
+        // Rünü yerleştiren oyuncunun envanterinden rünü "düşürmesini" tetikle
         if (InventorySystem.Instance != null)
         {
-            // ForceDropItem() metodunuzun, elde tutulan öğeyi envanterden çıkardığını varsayıyoruz.
             InventorySystem.Instance.ForceDropItem();
-            Debug.Log($"InventorySystem.Instance.ForceDropItem() called on {PhotonNetwork.LocalPlayer.NickName}.");
         }
         else
         {
@@ -198,7 +250,7 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
         }
     }
 
-
+    // Objelerin dünya ölçeğini koruyarak parent değiştirmesini sağlayan yardımcı metot
     void SetWorldScale(Transform t, Vector3 worldScale)
     {
         if (t.parent == null)
@@ -219,25 +271,31 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
     {
         if (stream.IsWriting)
         {
-            stream.SendNext(isCompleted);
+            // Durumları senkronize et
+            stream.SendNext(_isAnyRunePlaced);
+            stream.SendNext(_isCorrectRunePlaced);
             stream.SendNext(currentPlacedRune != null ? currentPlacedRune.GetComponent<PhotonView>().ViewID : -1);
         }
         else
         {
-            bool receivedCompleted = (bool)stream.ReceiveNext();
+            // Durumları al ve güncelle
+            bool receivedAnyRunePlaced = (bool)stream.ReceiveNext();
+            bool receivedCorrectRunePlaced = (bool)stream.ReceiveNext();
             int receivedRuneViewID = (int)stream.ReceiveNext();
 
-            if (isCompleted != receivedCompleted)
+            if (_isAnyRunePlaced != receivedAnyRunePlaced || _isCorrectRunePlaced != receivedCorrectRunePlaced)
             {
-                isCompleted = receivedCompleted; // UpdateVisualState() çağrılır
+                _isAnyRunePlaced = receivedAnyRunePlaced;
+                _isCorrectRunePlaced = receivedCorrectRunePlaced;
+                UpdateVisualState();
             }
 
-            if (receivedCompleted && receivedRuneViewID != -1)
+            if (receivedAnyRunePlaced && receivedRuneViewID != -1)
             {
                 GameObject receivedRuneGO = PhotonView.Find(receivedRuneViewID)?.gameObject;
                 if (receivedRuneGO != null && receivedRuneGO.transform.parent != runePlacementPoint)
                 {
-                    // Yeni bağlanan veya durumu senkronize eden istemciler için rünü yerleştir
+                    // Eğer rün henüz slota parent yapılmamışsa, görselini ayarla
                     Vector3 originalScale = receivedRuneGO.transform.lossyScale;
                     receivedRuneGO.transform.SetParent(runePlacementPoint, false);
                     SetWorldScale(receivedRuneGO.transform, originalScale);
@@ -251,11 +309,94 @@ public class RuneSlot : MonoBehaviourPun, IInteractable
                 }
                 currentPlacedRune = receivedRuneGO;
             }
-            else if (!receivedCompleted && currentPlacedRune != null)
+            else if (!receivedAnyRunePlaced && currentPlacedRune != null)
             {
-                // Eğer slot tamamlanmadıysa ama bir rün varsa (durum değişimi olduysa), rünü temizle
+                // Slot boşaldıysa referansı temizle
                 currentPlacedRune = null;
             }
         }
+    }
+
+    // Rünü geri alma isteğini başlatır (slotun sahibinden)
+    private void RequestTakeBackRune(int requestingPlayerActorNumber)
+    {
+        if (currentPlacedRune == null)
+        {
+            Debug.LogWarning("No rune to take back from this slot.");
+            return;
+        }
+
+        // Doğru rün yerleştirilmişse geri almayı engelle
+        if (IsCorrectRunePlaced)
+        {
+            Debug.Log("Correct rune is placed, cannot take it back.");
+            return; // Geri alma işlemini durdur
+        }
+
+        // Slotun sahibi değilsek, RPC ile sahibine bildir.
+        if (!photonView.IsMine)
+        {
+            photonView.RPC("RPC_RequestRuneTakeBack", photonView.Owner, requestingPlayerActorNumber);
+            return;
+        }
+
+        // Slotun sahibiyiz, işlemi doğrudan başlat.
+        ProcessRuneTakeBack(requestingPlayerActorNumber);
+    }
+
+    // Yeni RPC: Rünü geri alma isteğini slotun sahibine iletir.
+    [PunRPC]
+    private void RPC_RequestRuneTakeBack(int requestingPlayerActorNumber, PhotonMessageInfo info)
+    {
+        // Sadece slotun sahibi olan istemcide çalışır.
+        ProcessRuneTakeBack(requestingPlayerActorNumber);
+    }
+
+    // Yeni metod: Rünü geri alma mantığını işler (sadece slotun sahibinde çalışır)
+    private void ProcessRuneTakeBack(int requestingPlayerActorNumber)
+    {
+        if (currentPlacedRune == null) return; // Zaten boşsa işlem yapma
+
+        // Rünü yerleştiren oyuncunun InventorySystem'ına geri eklemesini emret.
+        Player requestingPlayer = PhotonNetwork.CurrentRoom.GetPlayer(requestingPlayerActorNumber);
+        if (requestingPlayer != null)
+        {
+            // InventorySystem'daki RPC_TakeItemBack metodunu çağırıyoruz.
+            // Bu, rünün ViewID'sini göndererek ilgili oyuncunun envanterine rünü eklemesini sağlayacak.
+            InventorySystem.Instance.photonView.RPC("RPC_TakeItemBack", requestingPlayer, currentPlacedRune.GetComponent<PhotonView>().ViewID);
+        }
+
+        // Slotu tüm istemcilerde görsel olarak boşalt ve durumunu sıfırla.
+        photonView.RPC("RPC_ClearRuneSlotVisuals", RpcTarget.AllBuffered);
+
+        // PuzzleController'a bildir (rün geri alındığında puzzle durumu değiştiği için)
+        if (puzzleController != null)
+        {
+            puzzleController.NotifyRunePlaced(); // Puzzle durumu tekrar kontrol edilecek
+        }
+    }
+
+    // Yeni RPC: Rün slotunu tüm istemcilerde boşaltır ve görseli sıfırlar.
+    [PunRPC]
+    private void RPC_ClearRuneSlotVisuals()
+    {
+        if (currentPlacedRune != null)
+        {
+            // Rünü parent'ından ayır. Artık rün, envantere geri alındığı için InventorySystem ve ItemPickup tarafından yönetilecek.
+            // Bu, rünün sahneden yok edilmemesini varsayar.
+            currentPlacedRune.transform.SetParent(null);
+            
+            // Rün slottan alındığında ItemPickup script'i fiziksel ve görsel durumu ayarlayacaktır
+            // Bu kısım artık ItemPickup'ın sorumluluğunda olduğu için buradan kaldırıldı.
+            // currentPlacedRune.GetComponent<Collider>()?.enabled = true;
+            // Rigidbody rb = currentPlacedRune.GetComponent<Rigidbody>();
+            // if (rb) { rb.isKinematic = false; rb.useGravity = true; }
+        }
+
+        _isAnyRunePlaced = false;
+        IsCorrectRunePlaced = false; // Setter UpdateVisualState'i çağırır (slotu griye çevirir)
+        currentPlacedRune = null; // Yerleştirilen rün referansını temizle
+
+        Debug.Log($"Rune slot {gameObject.name} cleared on all clients.");
     }
 }

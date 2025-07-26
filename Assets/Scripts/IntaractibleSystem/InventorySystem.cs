@@ -1,6 +1,7 @@
 // InventorySystem.cs
 using UnityEngine;
 using Photon.Pun;
+using System.Collections; // For coroutines if you have any
 
 // This script manages the single-slot inventory for a player.
 // It needs to be attached to your player prefab.
@@ -35,7 +36,6 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         }
         return string.Empty; // Return empty string if no item is held
     }
-
 
     // --- Unity Lifecycle Methods ---
     void Awake()
@@ -85,7 +85,7 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         return heldItemGameObject != null;
     }
 
-    // New: Returns the GameObject of the currently held item.
+    // Returns the GameObject of the currently held item.
     public GameObject GetHeldItemGameObject()
     {
         return heldItemGameObject;
@@ -120,6 +120,9 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         itemGo.transform.localPosition = Vector3.zero;
         itemGo.transform.localRotation = Quaternion.identity;
 
+        // Mark item as held. ItemPickup's IsHeld property will internally call ApplyHeldState.
+        itemPickup.IsHeld = true; 
+        
         Debug.Log($"Picked up item: {itemGo.name}");
     }
 
@@ -143,12 +146,14 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         Debug.Log($"Dropping item: {heldItemGameObject.name}");
 
         // Tell the ItemPickup script to handle the network synchronization for dropping.
-        heldItemPickupScript.Drop();
+        // ItemPickup's Drop() method sets IsHeld = false, which will call ApplyHeldState().
+        heldItemPickupScript.Drop(); 
 
-        // Clear the local references. The ItemPickup script will handle unparenting and visual state.
+        // Clear the local references.
         heldItemGameObject = null;
         heldItemPickupScript = null;
     }
+
     public void ConsumeHeldItem()
     {
         if (heldItemGameObject == null)
@@ -168,6 +173,8 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         // Eğer network objesiyse tüm oyuncular için yok et
         if (PhotonNetwork.IsConnected && heldItemGameObject.GetComponent<PhotonView>() != null)
         {
+            // Eğer objenin sahibi biz değilsek, yok edemeyiz. Bu durumda ownership alıp sonra yok etmeliyiz.
+            // Ancak genellikle consume edilen item zaten oyuncunun elinde olduğu için owner'ı da oyuncudur.
             PhotonNetwork.Destroy(heldItemGameObject);
         }
         else
@@ -179,7 +186,10 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         heldItemGameObject = null;
         heldItemPickupScript = null;
     }
-    
+
+    // Bu metod, rün slota yerleştirildiğinde oyuncunun elindeki rünü "bırakması" için RuneSlot'tan çağrılır.
+    // Sadece envanterdeki referansları sıfırlar, item'ın kendisinin parent'ını veya durumunu değiştirmez,
+    // çünkü RuneSlot'un RPC_PlaceRuneVisuals'ı zaten item'ı slota parent'lamış ve fiziksel/görsel durumunu ayarlamıştır.
     public void ForceDropItem()
     {
         if (heldItemGameObject == null)
@@ -196,9 +206,51 @@ public class InventorySystem : MonoBehaviourPunCallbacks
 
         Debug.Log($"Force-dropping item: {heldItemGameObject.name}");
 
-        // Sadece envanterden çıkar, sahnedeki objeye dokunma
+        // Sadece envanterden çıkar
         heldItemGameObject = null;
         heldItemPickupScript = null;
     }
 
+    // --- Yeni Metot ---
+    // Bu RPC, bir rün slottan geri alındığında ilgili oyuncunun envanterine geri eklenmesini sağlar.
+    [PunRPC]
+    public void RPC_TakeItemBack(int runeViewID, PhotonMessageInfo info)
+    {
+        // Bu RPC sadece hedeflenen (rünü geri alacak) oyuncu tarafından alınır.
+        if (!photonView.IsMine)
+        {
+            Debug.LogWarning("Received RPC_TakeItemBack on a non-local player's inventory. Skipping.");
+            return;
+        }
+
+        Debug.Log($"Received RPC_TakeItemBack for rune ViewID {runeViewID} on player {PhotonNetwork.LocalPlayer.NickName}.");
+
+        // Envanter zaten doluysa, rünü geri alamayız.
+        if (IsHoldingItem())
+        {
+            Debug.LogWarning("Inventory is full, cannot take back rune. Please make sure inventory is clear.");
+            // Oyuncuya bir geri bildirim gösterilebilir (örn: "Envanter dolu!")
+            return;
+        }
+
+        GameObject runeGO = PhotonView.Find(runeViewID)?.gameObject;
+        if (runeGO == null)
+        {
+            Debug.LogError($"RPC_TakeItemBack: Could not find rune with ViewID {runeViewID} to take back.");
+            return;
+        }
+
+        ItemPickup runePickup = runeGO.GetComponent<ItemPickup>();
+        if (runePickup == null)
+        {
+            Debug.LogError("Rune does not have an ItemPickup component. Cannot take back.");
+            return;
+        }
+
+        // Rünü tekrar envantere al. Bu, objenin parent'ını itemHolder'a ayarlar
+        // ve ItemPickup'ın IsHeld durumunu günceller.
+        PickupItem(runeGO, runePickup);
+
+        Debug.Log($"Successfully took back rune {runeGO.name} into inventory.");
+    }
 }

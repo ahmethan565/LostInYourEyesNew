@@ -27,10 +27,10 @@ public class CreepyEye : MonoBehaviour
     private Quaternion? snapTargetRotation = null;
 
     [Header("Pupil Settings")]
+    public bool enablePupilAnimation = true; // 👁️ Pupil hareketini aç/kapat
     public Vector2 pupilScaleRange = new Vector2(0.5f, 1.1f);
     public float pupilLerpSpeed = 4f;
     public float chancePerSecond = 0.05f; // 5% şansla hareket eder
-    private float randomPupilTimer = 0f;
     private Vector3 targetPupilScale;
 
     private float seedX;
@@ -46,7 +46,9 @@ public class CreepyEye : MonoBehaviour
 
         seedX = Random.Range(0f, 100f);
         seedY = Random.Range(0f, 100f);
-        targetPupilScale = pupilTransform != null ? pupilTransform.localScale : Vector3.one;
+
+        if (enablePupilAnimation && pupilTransform != null)
+            targetPupilScale = pupilTransform.localScale;
     }
 
     void Update()
@@ -61,7 +63,7 @@ public class CreepyEye : MonoBehaviour
             freezeTimer = 0f;
 
             // 🎯 Donma sonrası pupil küçülebilir
-            if (pupilTransform != null)
+            if (enablePupilAnimation && pupilTransform != null)
                 SetPupilScale(pupilScaleRange.x);
         }
 
@@ -94,7 +96,7 @@ public class CreepyEye : MonoBehaviour
             snapTimer = 0f;
 
             // ⚡ Snap anında büyüt
-            if (pupilTransform != null)
+            if (enablePupilAnimation && pupilTransform != null)
                 SetPupilScale(pupilScaleRange.y);
         }
         else
@@ -118,7 +120,8 @@ public class CreepyEye : MonoBehaviour
             eyeObject.localRotation = Quaternion.Slerp(eyeObject.localRotation, targetRotation, Time.deltaTime * 3f);
         }
 
-        HandlePupilDilation();
+        if (enablePupilAnimation)
+            HandlePupilDilation();
     }
 
     void HandlePupilDilation()
@@ -143,7 +146,6 @@ public class CreepyEye : MonoBehaviour
     void SetPupilScale(float scale)
     {
         if (pupilTransform == null) return;
-
         targetPupilScale = new Vector3(scale, scale, scale);
     }
 }

@@ -957,9 +957,11 @@ MonoBehaviour:
   baseSprintSpeed: 15
   isSprinting: 0
   jumpForce: 3
-  gravityValue: -20
   maxSlopeAngle: 45
   airControlFactor: 0.5
+  maxFallSpeed: 30
+  baseGravity: -20
+  gravityMultiplier: 1
   crouchHeight: 1
   crouchSpeedMultiplier: 0.5
   crouchCameraOffset: -0.5
@@ -1035,16 +1037,21 @@ MonoBehaviour:
   cameraTransform: {fileID: 6164948587309667069}
   initialCameraLocalPosition: {x: 0, y: 0, z: 0}
   characterController: {fileID: 2095089406744316125}
-  walkBobAmplitude: 0.015
+  walkBobAmplitude: 0.02
   walkBobFrequency: 8
   runBobAmplitude: 0.03
   runBobFrequency: 12
-  jumpLandBobAmplitude: 0.05
-  jumpLandBobDuration: 0.2
+  jumpLandBobAmplitude: 0.2
+  jumpLandBobDuration: 0.3
+  minFallSpeedForImpact: 1
+  fallImpactMultiplier: 0.02
+  jumpKickAmplitude: 0.09
+  jumpKickDuration: 0.2
+  airBobAmplitude: 0.01
+  airBobFrequency: 3
   smoothTime: 0.1
   isAiming: 0
-  isRunning: 0
-  walkSpeedThreshold: 2
+  walkSpeedThreshold: 0.5
   runSpeedThreshold: 10
 --- !u!114 &1373029480319586104
 MonoBehaviour:

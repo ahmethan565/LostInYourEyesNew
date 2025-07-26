@@ -9,7 +9,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
 {
     // Public property to check if the item is currently held by any player.
     // This is synchronized over the network.
-    public bool IsHeld { get; private set; }
+    public bool IsHeld { get; set; }
 
     [Tooltip("A unique identifier for this item type. Used for puzzle interactions (e.g., 'RedKey_ID').")]
     public string itemID; // Used for logical identification (e.g., matching a key to a door)
@@ -299,7 +299,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
 
         fallCoroutine = null;
     }
-    
+
     public void InteractWithItem(GameObject heldItemGameObject)
     {
         throw new System.NotImplementedException();
