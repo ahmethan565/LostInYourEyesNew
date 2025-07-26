@@ -58,6 +58,7 @@ MonoBehaviour:
   - RPC_RequestRuneTakeBack
   - RPC_TakeItemBack
   - RPC_SyncItemTransform
+  - RPC_UpdateSlotColor
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

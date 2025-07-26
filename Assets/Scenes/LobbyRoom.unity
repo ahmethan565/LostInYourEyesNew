@@ -4647,7 +4647,7 @@ MonoBehaviour:
   player2StatusText: {fileID: 1857970109}
   closeRoomButton: {fileID: 6804469410596792830}
   leaveRoomButton: {fileID: 6804469411070696626}
-  gameSceneName: Puzzle1
+  gameSceneName: Game
 --- !u!4 &1442184256
 Transform:
   m_ObjectHideFlags: 0

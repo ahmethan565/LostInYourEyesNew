@@ -107,6 +107,13 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         // First, mark it as held locally.
         IsHeld = true;
 
+        // Düşme coroutine'i çalışıyorsa durdur
+        if (fallCoroutine != null)
+        {
+            StopCoroutine(fallCoroutine);
+            fallCoroutine = null;
+        }
+
         // Inform the local InventorySystem to handle the item's attachment.
         if (InventorySystem.Instance != null)
         {
@@ -128,6 +135,13 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         // Mark as not held locally.
         IsHeld = false;
+
+        // Düşme coroutine'i çalışıyorsa durdur (güvenlik için)
+        if (fallCoroutine != null)
+        {
+            StopCoroutine(fallCoroutine);
+            fallCoroutine = null;
+        }
 
         // Kameranın baktığı yönü al
         Transform cam = Camera.main.transform;
@@ -185,18 +199,25 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         else
         {
             // We are receiving data from the owner.
-            IsHeld = (bool)stream.ReceiveNext();
-            // If the item is marked as held by the owner, we need to update its visual state.
-            // This handles cases where a player joins late or an item's state changes rapidly.
-            if (IsHeld)
+            bool receivedIsHeld = (bool)stream.ReceiveNext();
+            
+            // Eğer durum değiştiyse güncelle
+            if (IsHeld != receivedIsHeld)
             {
-                // Apply the held state changes if not already applied.
-                ApplyHeldState(true);
-            }
-            else
-            {
-                // If it's dropped by the owner, apply dropped state immediately for consistency.
-                ApplyHeldState(false);
+                IsHeld = receivedIsHeld;
+                
+                // If the item is marked as held by the owner, we need to update its visual state.
+                // This handles cases where a player joins late or an item's state changes rapidly.
+                if (IsHeld)
+                {
+                    // Apply the held state changes if not already applied.
+                    ApplyHeldState(true);
+                }
+                else
+                {
+                    // If it's dropped by the owner, apply dropped state immediately for consistency.
+                    ApplyHeldState(false);
+                }
             }
             // If you are NOT using PhotonTransformView, you would also receive position/rotation here
             // transform.position = (Vector3)stream.ReceiveNext();
@@ -260,6 +281,14 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         // Continuously fall until ground is hit
         while (true)
         {
+            // Eğer item tutulmuşsa düşmeyi durdur
+            if (IsHeld)
+            {
+                Debug.Log($"Item {gameObject.name} was picked up during fall. Stopping fall simulation.");
+                fallCoroutine = null;
+                yield break;
+            }
+
             // Calculate next position downwards
             Vector3 nextPos = transform.position + Vector3.down * fallSpeed * Time.deltaTime;
 
