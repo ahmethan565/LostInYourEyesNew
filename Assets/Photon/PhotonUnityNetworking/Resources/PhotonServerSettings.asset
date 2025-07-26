@@ -59,6 +59,8 @@ MonoBehaviour:
   - RPC_TakeItemBack
   - RPC_SyncItemTransform
   - RPC_UpdateSlotColor
+  - RPC_DropItem
+  - RPC_SyncFinalPosition
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

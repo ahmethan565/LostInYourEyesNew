@@ -2491,7 +2491,7 @@ MonoBehaviour:
   fallSpeed: 5
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
 --- !u!114 &611942929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3175,7 +3175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 49898e138bbac0f4a8622d1948a1e7e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  testSingle: 0
+  testSingle: 1
 --- !u!4 &792464580
 Transform:
   m_ObjectHideFlags: 0
@@ -7951,7 +7951,7 @@ MonoBehaviour:
   fallSpeed: 5
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
 --- !u!23 &2091972481
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -8120,7 +8120,7 @@ MonoBehaviour:
   fallSpeed: 5
   groundLayer:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 0
 --- !u!23 &2123635399
 MeshRenderer:
   m_ObjectHideFlags: 0

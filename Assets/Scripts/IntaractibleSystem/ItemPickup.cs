@@ -31,6 +31,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     private Renderer[] renderers; // Use an array to handle multiple renderers in children
 
     private Coroutine fallCoroutine; // Reference to the fall coroutine
+    private bool isFalling = false; // Track falling state
 
     // --- Public Getters for UI Data ---
     public string GetDisplayName()
@@ -103,16 +104,12 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
             return;
         }
 
+        // IMPORTANT: Stop any falling animation immediately when picked up
+        StopFallingAnimation();
+
         // This client now owns the item and is attempting to pick it up.
         // First, mark it as held locally.
         IsHeld = true;
-
-        // Düşme coroutine'i çalışıyorsa durdur
-        if (fallCoroutine != null)
-        {
-            StopCoroutine(fallCoroutine);
-            fallCoroutine = null;
-        }
 
         // Inform the local InventorySystem to handle the item's attachment.
         if (InventorySystem.Instance != null)
@@ -136,12 +133,8 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         // Mark as not held locally.
         IsHeld = false;
 
-        // Düşme coroutine'i çalışıyorsa durdur (güvenlik için)
-        if (fallCoroutine != null)
-        {
-            StopCoroutine(fallCoroutine);
-            fallCoroutine = null;
-        }
+        // Stop any existing falling animation before starting a new one
+        StopFallingAnimation();
 
         // Kameranın baktığı yönü al
         Transform cam = Camera.main.transform;
@@ -150,7 +143,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         dropForward.Normalize();
 
         // Bırakılacak konumu belirle
-        Vector3 dropOffset = dropForward * 2.4f + Vector3.up * -1.5f; // 1.5 birim ön + hafif yukarı
+        Vector3 dropOffset = dropForward * 2.4f + Vector3.up * -0.5f; // 1.5 birim ön + hafif yukarı
         transform.position = cam.position + dropOffset;
 
         // Dönüşünü de oyuncunun baktığı yöne çevirmek istersen:
@@ -160,6 +153,16 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         photonView.RPC("RPC_SetItemState", RpcTarget.AllBuffered, false);
     }
 
+    // Helper method to stop falling animation
+    private void StopFallingAnimation()
+    {
+        if (fallCoroutine != null)
+        {
+            StopCoroutine(fallCoroutine);
+            fallCoroutine = null;
+        }
+        isFalling = false;
+    }
 
     // --- IInteractable Implementation ---
     // This method provides text for the UI about the interaction.
@@ -192,6 +195,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         {
             // We own this item and are sending its state to others.
             stream.SendNext(IsHeld);
+            stream.SendNext(isFalling); // Also sync falling state
             // If you are NOT using PhotonTransformView, you might also send position/rotation here for smoother sync
             // stream.SendNext(transform.position);
             // stream.SendNext(transform.rotation);
@@ -199,25 +203,29 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         else
         {
             // We are receiving data from the owner.
-            bool receivedIsHeld = (bool)stream.ReceiveNext();
+            bool wasHeld = IsHeld;
+            bool wasFalling = isFalling;
             
-            // Eğer durum değiştiyse güncelle
-            if (IsHeld != receivedIsHeld)
+            IsHeld = (bool)stream.ReceiveNext();
+            isFalling = (bool)stream.ReceiveNext();
+            
+            // If item state changed from falling to held, stop falling animation
+            if (wasFalling && !isFalling && IsHeld)
             {
-                IsHeld = receivedIsHeld;
-                
-                // If the item is marked as held by the owner, we need to update its visual state.
-                // This handles cases where a player joins late or an item's state changes rapidly.
-                if (IsHeld)
-                {
-                    // Apply the held state changes if not already applied.
-                    ApplyHeldState(true);
-                }
-                else
-                {
-                    // If it's dropped by the owner, apply dropped state immediately for consistency.
-                    ApplyHeldState(false);
-                }
+                StopFallingAnimation();
+            }
+            
+            // If the item is marked as held by the owner, we need to update its visual state.
+            // This handles cases where a player joins late or an item's state changes rapidly.
+            if (IsHeld)
+            {
+                // Apply the held state changes if not already applied.
+                ApplyHeldState(true);
+            }
+            else
+            {
+                // If it's dropped by the owner, apply dropped state immediately for consistency.
+                ApplyHeldState(false);
             }
             // If you are NOT using PhotonTransformView, you would also receive position/rotation here
             // transform.position = (Vector3)stream.ReceiveNext();
@@ -233,14 +241,17 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         ApplyHeldState(becomeHeld);
 
+        // If the item is being picked up, stop any falling animation
+        if (becomeHeld)
+        {
+            StopFallingAnimation();
+        }
         // If the item is being dropped (not held), and this client owns it,
         // initiate the custom fall animation.
-        if (!becomeHeld && photonView.IsMine)
+        else if (!becomeHeld && photonView.IsMine)
         {
-            if (fallCoroutine != null)
-            {
-                StopCoroutine(fallCoroutine);
-            }
+            // Stop any existing falling animation before starting a new one
+            StopFallingAnimation();
             fallCoroutine = StartCoroutine(SimulateFall());
         }
     }
@@ -278,15 +289,16 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     // --- Custom Gravity Simulation ---
     IEnumerator SimulateFall()
     {
-        // Continuously fall until ground is hit
-        while (true)
+        isFalling = true;
+        
+        // Continuously fall until ground is hit or item is picked up
+        while (isFalling && !IsHeld)
         {
-            // Eğer item tutulmuşsa düşmeyi durdur
+            // Double check if item was picked up during falling
             if (IsHeld)
             {
-                Debug.Log($"Item {gameObject.name} was picked up during fall. Stopping fall simulation.");
-                fallCoroutine = null;
-                yield break;
+                isFalling = false;
+                break;
             }
 
             // Calculate next position downwards
@@ -326,6 +338,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
             yield return null; // Wait for next frame
         }
 
+        isFalling = false;
         fallCoroutine = null;
     }
 
