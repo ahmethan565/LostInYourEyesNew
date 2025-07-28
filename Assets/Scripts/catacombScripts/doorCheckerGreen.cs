@@ -4,7 +4,7 @@ using UnityEngine;
 public class doorCheckerGreen : MonoBehaviour
 {
 
-    public FPSPlayerControllerSingle bluePlayer;
+    // public FPSPlayerControllerSingle bluePlayer;
     public DoorLift doorToOpen;
 
     void OnTriggerEnter(Collider other)

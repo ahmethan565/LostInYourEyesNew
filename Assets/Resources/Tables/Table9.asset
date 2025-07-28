@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2671e9c487346124f9bcc1e12e406f4a, type: 3}
+  m_Name: Table9
+  m_EditorClassIdentifier: 
+  tableTexture: {fileID: 2800000, guid: 6b4fdf8a3769dc94683ac3480c421267, type: 3}
+  symbolTextures:
+  - {fileID: 2800000, guid: 7540dfced672cb548aa760627bd26946, type: 3}
+  - {fileID: 2800000, guid: 1d95ac61d2350854db8ba8f5befa6997, type: 3}
+  - {fileID: 2800000, guid: da1f8fc00fadf884bb340d50fc67c3e9, type: 3}
+  correctTextures:
+  - {fileID: 2800000, guid: c021bc37515d257448436860b98f9b80, type: 3}
+  - {fileID: 2800000, guid: eb2ea92a2d94e9a49a49a2549079d63e, type: 3}
+  - {fileID: 2800000, guid: 68491310ea1f8204194e25b38cfebeb6, type: 3}
+  tableTransform: {fileID: 0}

@@ -20,6 +20,8 @@ public class TableReceiver : MonoBehaviour
 
     public float openSpeed = 1f;
 
+    public catacombPuzzleManager puzzleManager;
+
     private bool isOpening = false;
     private Vector3 initialPosition;
     private Vector3 targetPosition;
@@ -51,7 +53,9 @@ public class TableReceiver : MonoBehaviour
     {
         tableRenderer.material.mainTexture = data.tableTexture;
         catacombPuzzleChecker.Instance.SetCorrectSymbols(data.correctTextures);
-        selectedTableTransform = data.tableTransform.position + data.tableTransform.forward * 1.2f;
+        // selectedTableTransform = data.tableTransform.position + data.tableTransform.forward * 1.2f;
+        // selectedTableTransform -= new Vector3(0f, 6f, 0f);
+        selectedTableTransform = puzzleManager.spawnedTableTransforms[puzzleManager.selectedTableIndex].position * 1.01f;
         selectedTableTransform -= new Vector3(0f, 6f, 0f);
 
         TableDisplay[] displays = FindObjectsOfType<TableDisplay>();

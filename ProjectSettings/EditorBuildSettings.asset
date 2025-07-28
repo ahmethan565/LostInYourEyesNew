@@ -14,10 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LobbyRoom.unity
     guid: 8c2208d55db4c6844a640b0f5b813785
-  - enabled: 0
+  - enabled: 1
     path: Assets/Scenes/Puzzle1.unity
     guid: 9d57024d4491a6f4696284347915f69c
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Game.unity
     guid: cb4679af8427e83489edb732087f65a8
   m_configObjects:
