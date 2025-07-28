@@ -2,6 +2,7 @@ using UnityEngine;
 using Photon.Pun;
 using System.Collections;
 using System.Data.Common;
+using System.Collections.Generic;
 
 public class catacombPuzzleManager : MonoBehaviourPunCallbacks
 {
@@ -14,6 +15,10 @@ public class catacombPuzzleManager : MonoBehaviourPunCallbacks
 
     private TableData[] allTables;
     private TableData selectedTable;
+
+    public int selectedTableIndex;
+
+    public List<Transform> spawnedTableTransforms = new List<Transform>();
 
     void Awake()
     {
@@ -55,12 +60,15 @@ public class catacombPuzzleManager : MonoBehaviourPunCallbacks
             TableDisplay display = table.GetComponent<TableDisplay>();
             display.Setup(allTables[i]);
 
-            allTables[i].tableTransform = table.transform;
+            // allTables[i].tableTransform = table.transform;
+
+            spawnedTableTransforms.Add(table.transform);
         }
 
         //rastgele tablo seçimi
         selectedTable = allTables[Random.Range(0, allTables.Length)];
         int index = System.Array.IndexOf(allTables, selectedTable);
+        selectedTableIndex = System.Array.IndexOf(allTables, selectedTable);
         photonView.RPC("SendSelectedTableIndex", RpcTarget.AllBuffered, index);
     }
 

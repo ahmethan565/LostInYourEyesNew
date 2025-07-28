@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2671e9c487346124f9bcc1e12e406f4a, type: 3}
   m_Name: Table1
   m_EditorClassIdentifier: 
-  tableTexture: {fileID: 2800000, guid: 6d9e23ff8fc8cfd42a4fd204203d7627, type: 3}
+  tableTexture: {fileID: 2800000, guid: f84942e8387e72148a2f5ed3ab3bb759, type: 3}
   symbolTextures:
-  - {fileID: 2800000, guid: 1025b5143048b124ea53a1ce15eca67d, type: 3}
   - {fileID: 2800000, guid: f52932809cac9914383ff64c91559982, type: 3}
-  - {fileID: 2800000, guid: c021bc37515d257448436860b98f9b80, type: 3}
+  - {fileID: 2800000, guid: eb2ea8e7196d6184bac70a3b2064efe7, type: 3}
+  - {fileID: 2800000, guid: 5400a145ace4cb54a8a64747664cbbbd, type: 3}
   correctTextures:
-  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
-  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
-  - {fileID: 2800000, guid: c6ccdaf3d98bd224ab5f7c0e95804598, type: 3}
+  - {fileID: 2800000, guid: 1025b5143048b124ea53a1ce15eca67d, type: 3}
+  - {fileID: 2800000, guid: d8bf3b6c309fcf44ab1a9dec6c5bb703, type: 3}
+  - {fileID: 2800000, guid: 45dfe27dfe7961149b00e9c504dcfbad, type: 3}
+  tableTransform: {fileID: 0}
