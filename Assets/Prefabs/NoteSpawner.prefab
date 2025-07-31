@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2026795484076577152}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 168.17468, y: 37.750416, z: 13.490414}
   m_LocalScale: {x: 0.98003626, y: 0.98003626, z: 0.98003626}
   m_ConstrainProportionsScale: 0
@@ -50,23 +50,21 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  triggerCapsule: {fileID: 0}
   keysTexts:
   - W
   - A
   - S
   - D
-  - <
-  - ^
-  - \/
-  - '>'
+  - "\u25C4"
+  - "\u25B2"
+  - "\u25BC"
+  - "\u25BA"
   spawnInterval: 0.9
   isInvoking: 0
   waitTime: 2
-  noteScript: {fileID: 0}
+  noteScript: {fileID: -6266338649946392891, guid: ffedb7c78e98e8f47b9efe3466761f25, type: 3}
   pointsText: {fileID: 0}
-  fBadge: {fileID: 0}
-  sBadge: {fileID: 0}
-  tBadge: {fileID: 0}
   youWon: {fileID: 0}
   Coin1: {fileID: 0}
   Coin2: {fileID: 0}
@@ -74,3 +72,21 @@ MonoBehaviour:
   Coin4: {fileID: 0}
   fillingImage: {fileID: 0}
   fullPointsPanel: {fileID: 0}
+  escapeMenuOrgan: {fileID: 0}
+  playerDetector: {fileID: 11400000, guid: 16ee211063d9ea1499e2630f561f06ca, type: 2}
+  coinAnimationDuration: 0.8
+  fillAnimationDuration: 0.5
+  pointsTextAnimationDuration: 0.3
+  badgeScalePunch: 1.2
+  coinBounceStrength: 1.3
+  coinRotationAmount: 360
+  fillEaseAmount: 0.8
+  shakeStrength: 15
+  shakeDuration: 0.1
+  effectImages:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  canvasRectTransform: {fileID: 0}

@@ -5377,25 +5377,9 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 4885790450552345159}
     - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: fBadge
-      value: 
-      objectReference: {fileID: 8945048940263569573}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: sBadge
-      value: 
-      objectReference: {fileID: 2742858644672766746}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: tBadge
-      value: 
-      objectReference: {fileID: 9031607208669676790}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
       propertyPath: youWon
       value: 
       objectReference: {fileID: 3551044448789878733}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: noteScript
-      value: 
-      objectReference: {fileID: -6266338649946392891, guid: ffedb7c78e98e8f47b9efe3466761f25, type: 3}
     - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
       propertyPath: pointsText
       value: 
@@ -5404,10 +5388,6 @@ PrefabInstance:
       propertyPath: fillingImage
       value: 
       objectReference: {fileID: 5595999964327813067}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: playerDetector
-      value: 
-      objectReference: {fileID: 11400000, guid: 16ee211063d9ea1499e2630f561f06ca, type: 2}
     - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
       propertyPath: escapeMenuOrgan
       value: 
@@ -5436,26 +5416,6 @@ PrefabInstance:
       propertyPath: 'columns.Array.data[3]'
       value: 
       objectReference: {fileID: 6387949951562829782}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: effectImages.Array.size
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: 'keysTexts.Array.data[4]'
-      value: "\u25C4"
-      objectReference: {fileID: 0}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: 'keysTexts.Array.data[5]'
-      value: "\u25B2"
-      objectReference: {fileID: 0}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: 'keysTexts.Array.data[6]'
-      value: "\u25BC"
-      objectReference: {fileID: 0}
-    - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
-      propertyPath: 'keysTexts.Array.data[7]'
-      value: "\u25BA"
-      objectReference: {fileID: 0}
     - target: {fileID: 5239379700441442671, guid: 0ad5b719942362842b0a907025299bc5, type: 3}
       propertyPath: 'effectImages.Array.data[0]'
       value: 
@@ -5516,8 +5476,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 0}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

@@ -41,7 +41,6 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     private float beforeEscInterval;
 
     [Header("D")]
-
     public GameObject youWon;
 
     private Canvas canvas;
@@ -57,7 +56,27 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     public GameObject escapeMenuOrgan;
     public playerDetector playerDetector;
 
-    // public Note Note { get => note; set => note = value; };
+    [Header("Animation Settings")]
+    public float coinAnimationDuration = 0.8f;
+    public float fillAnimationDuration = 0.5f;
+    public float pointsTextAnimationDuration = 0.3f;
+    public float badgeScalePunch = 1.2f;
+
+    [Header("Advanced Animation Settings")]
+    public float coinBounceStrength = 1.3f;
+    public float coinRotationAmount = 360f;
+    public float fillEaseAmount = 0.8f;
+    public float shakeStrength = 25f;
+    public float shakeDuration = 0.4f;
+
+    [Header("Effect Images")]
+    public List<Image> effectImages; // Inspector'da atayacağın Image'lar
+
+    // Animation tracking
+    private float previousFillAmount = 0f;
+    private Tween currentFillTween;
+
+    public RectTransform canvasRectTransform;
 
     void Awake()
     {
@@ -71,6 +90,9 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         points = 0;
         canvas = GetComponentInParent<Canvas>();
         PhotonNetwork.AutomaticallySyncScene = true;
+
+        // Initialize coins with zero scale for animations
+        InitializeCoins();
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -103,8 +125,136 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
 
         StartCoroutine(UpdateSpawnInterval());
     }
-    [Header("Effect Images")]
-    public List<Image> effectImages; // Inspector'da atayacağın Image'lar
+
+    /// <summary>
+    /// Initialize coins with zero scale for entry animations
+    /// </summary>
+    private void InitializeCoins()
+    {
+        if (Coin1 != null) Coin1.transform.localScale = Vector3.zero;
+        if (Coin2 != null) Coin2.transform.localScale = Vector3.zero;
+        if (Coin3 != null) Coin3.transform.localScale = Vector3.zero;
+        if (Coin4 != null) Coin4.transform.localScale = Vector3.zero;
+    }
+
+    /// <summary>
+    /// Animate coin appearance with bounce and rotation
+    /// </summary>
+    /// <param name="coin">Coin GameObject to animate</param>
+    private void AnimateCoinAppearance(GameObject coin)
+    {
+        if (coin == null) return;
+
+        coin.SetActive(true);
+        coin.transform.localScale = Vector3.zero;
+
+        // Create sequence for coin animation
+        Sequence coinSequence = DOTween.Sequence();
+
+        // Scale bounce animation
+        coinSequence.Append(coin.transform.DOScale(Vector3.one * coinBounceStrength, coinAnimationDuration * 0.6f)
+            .SetEase(Ease.OutBack));
+        coinSequence.Append(coin.transform.DOScale(Vector3.one, coinAnimationDuration * 0.4f)
+            .SetEase(Ease.InOutQuad));
+
+        // Rotation animation (parallel to scale)
+        coin.transform.DORotate(new Vector3(0, 0, coinRotationAmount), coinAnimationDuration, RotateMode.FastBeyond360)
+            .SetEase(Ease.OutQuart);
+
+        // Add shake effect to the screen when coin appears
+        ShakeScreen(shakeDuration * 0.5f, shakeStrength * 0.5f);
+    }
+
+    /// <summary>
+    /// Animate coin disappearance
+    /// </summary>
+    /// <param name="coin">Coin GameObject to animate</param>
+    private void AnimateCoinDisappearance(GameObject coin, System.Action onComplete = null)
+    {
+        if (coin == null)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        Sequence coinSequence = DOTween.Sequence();
+
+        // Scale down with rotation
+        coinSequence.Append(coin.transform.DOScale(Vector3.zero, coinAnimationDuration * 0.7f)
+            .SetEase(Ease.InBack));
+
+        // Fade out if it has CanvasGroup
+        CanvasGroup canvasGroup = coin.GetComponent<CanvasGroup>();
+        if (canvasGroup != null)
+        {
+            coinSequence.Join(canvasGroup.DOFade(0f, coinAnimationDuration * 0.7f));
+        }
+
+        coinSequence.OnComplete(() =>
+        {
+            coin.SetActive(false);
+            onComplete?.Invoke();
+        });
+    }
+
+    /// <summary>
+    /// Smooth fill animation for progress bar
+    /// </summary>
+    /// <param name="targetFillAmount">Target fill amount (0-1)</param>
+    private void AnimateFillAmount(float targetFillAmount)
+    {
+        if (fillingImage == null) return;
+
+        // Kill previous fill animation
+        if (currentFillTween != null && currentFillTween.IsActive())
+        {
+            currentFillTween.Kill();
+        }
+
+        float currentFill = fillingImage.fillAmount;
+        previousFillAmount = currentFill;
+
+        // Create smooth fill animation
+        currentFillTween = fillingImage.DOFillAmount(targetFillAmount, fillAnimationDuration)
+            .SetEase(Ease.OutQuart)
+            .OnUpdate(() =>
+            {
+                // Add subtle glow effect during fill
+                if (fillingImage.fillAmount > previousFillAmount)
+                {
+                    // Positive progress - green tint
+                    fillingImage.color = Color.Lerp(Color.white, Color.green, 0.2f);
+                }
+            })
+            .OnComplete(() =>
+            {
+                // Reset color after animation
+                fillingImage.DOColor(Color.white, 0.2f);
+            });
+    }
+
+    /// <summary>
+    /// Animate points text with punch scale effect
+    /// </summary>
+    private void AnimatePointsText()
+    {
+        if (pointsText == null) return;
+
+        // Kill any existing animation
+        pointsText.transform.DOKill();
+
+        // Punch scale animation
+        pointsText.transform.DOPunchScale(Vector3.one * 0.3f, pointsTextAnimationDuration, 10, 1f)
+            .SetEase(Ease.OutQuart);
+
+        // Color flash animation
+        /*
+        Color originalColor = pointsText.color;
+        pointsText.DOColor(Color.yellow, pointsTextAnimationDuration * 0.5f)
+            .SetLoops(2, LoopType.Yoyo)
+            .OnComplete(() => pointsText.color = originalColor);
+            */
+    }
 
     /// <summary>
     /// Doğru/yanlış durumuna göre renk efekti uygular.
@@ -124,55 +274,35 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         }
     }
 
-
-
     IEnumerator UpdateSpawnInterval()
     {
-
         if (points >= 50 && FPointsBool == false)
         {
-            // spawnInterval = waitTime;
-            // DestroyAllWithTag();
-            // RestartSpawn();
-            //fBadge.gameObject.SetActive(true);
-            Coin1.gameObject.SetActive(true);
-            // yield return new WaitForSeconds(waitTime);
+            // Animate coin appearance instead of just setting active
+            AnimateCoinAppearance(Coin1);
             spawnInterval = 0.8f;
             RestartSpawn();
             FPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            //fBadge.gameObject.SetActive(false);
         }
         else if (points >= 100 && SPointsBool == false)
         {
-            // spawnInterval = waitTime;
-            // DestroyAllWithTag();
-            // RestartSpawn();
-            //sBadge.gameObject.SetActive(true);
-            Coin2.gameObject.SetActive(true);
-            // yield return new WaitForSeconds(waitTime);
+            // Animate coin appearance instead of just setting active
+            AnimateCoinAppearance(Coin2);
             spawnInterval = 0.7f;
             RestartSpawn();
             SPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            //sBadge.gameObject.SetActive(false);
         }
-
         else if ((points == 200 && TPointsBool == false) || (points == 205 && TPointsBool == false))
         {
-            // spawnInterval = waitTime;
-            // DestroyAllWithTag();
-            // RestartSpawn();
-            //tBadge.gameObject.SetActive(true);
-            Coin3.gameObject.SetActive(true);
-            // yield return new WaitForSeconds(waitTime);
+            // Animate coin appearance instead of just setting active
+            AnimateCoinAppearance(Coin3);
             spawnInterval = 0.6f;
             RestartSpawn();
             TPointsBool = true;
             yield return new WaitForSeconds(waitTime);
-            //tBadge.gameObject.SetActive(false);
         }
-
         else if (points >= 400)
         {
             FullPointsFunction();
@@ -184,36 +314,41 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         if (pointsText != null)
         {
             pointsText.text = points + "X";
+            // Animate points text
+            AnimatePointsText();
         }
 
         if (fillingImage != null)
         {
+            float targetFillAmount = 0f;
+
             if (0 <= points && points <= 55)
             {
-                fillingImage.fillAmount = points / 285.7f;
+                targetFillAmount = points / 285.7f;
             }
             else if (56 <= points && points <= 105)
             {
-                fillingImage.fillAmount = points / 250f;
+                targetFillAmount = points / 250f;
             }
             else if (106 <= points && points <= 205)
             {
-                fillingImage.fillAmount = points / 303f;
+                targetFillAmount = points / 303f;
             }
             else if (206 <= points)
             {
-                fillingImage.fillAmount = points / 400f;
+                targetFillAmount = points / 400f;
             }
 
+            // Animate fill amount instead of setting directly
+            AnimateFillAmount(targetFillAmount);
         }
     }
-    public RectTransform canvasRectTransform;
 
     public void ShakeScreen(float duration = 0.3f, float strength = 15f)
     {
         if (canvasRectTransform != null)
         {
-            canvasRectTransform.DOShakePosition(0.5f, new Vector3(30f, 20f, 0f), vibrato: 20, randomness: 90);
+            canvasRectTransform.DOShakePosition(duration, new Vector3(strength, strength * 0.7f, 0f), vibrato: 20, randomness: 90);
         }
     }
 
@@ -233,9 +368,9 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
     void StartSpawn()
     {
         InvokeRepeating(nameof(SpawnNote), spawnInterval, spawnInterval);
-
         isInvoking = true;
     }
+
     void RestartSpawn()
     {
         if (isInvoking)
@@ -244,7 +379,6 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
         }
 
         InvokeRepeating(nameof(SpawnNote), spawnInterval, spawnInterval);
-
         isInvoking = true;
     }
 
@@ -269,8 +403,19 @@ public class NoteSpawnerUI : MonoBehaviourPunCallbacks
             FoPointsBool = true;
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
-            Coin4.gameObject.SetActive(true);
+
+            // Animate the final coin appearance with extra effects
+            AnimateCoinAppearance(Coin4);
+
+            // Animate you won panel with scale effect
             youWon.SetActive(true);
+            youWon.transform.localScale = Vector3.zero;
+            youWon.transform.DOScale(Vector3.one, 1f)
+                .SetEase(Ease.OutElastic)
+                .SetDelay(0.5f);
+
+            // Extra celebration shake
+            ShakeScreen(1f, shakeStrength * 1.5f);
         }
     }
 
