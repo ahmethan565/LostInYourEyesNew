@@ -7,7 +7,7 @@ public class PlayerJumpingState : PlayerState
 
     public override void Enter()
     {
-        Debug.Log("Jumping durumuna girildi.");
+        //Debug.Log("Jumping durumuna girildi.");
         player.HandleJumpInput(); // Zıplama gücünü uygula
         // Zıplama animasyonunu başlat
         // player.animator.SetTrigger("Jump");
@@ -59,7 +59,7 @@ public class PlayerJumpingState : PlayerState
 
     public override void Exit()
     {
-        Debug.Log("Jumping durumundan çıkıldı.");
+        //Debug.Log("Jumping durumundan çıkıldı.");
         // player.animator.SetBool("IsGrounded", true);
     }
 }

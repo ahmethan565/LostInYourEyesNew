@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 476850421453533170}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Hand
   m_TagString: Untagged
   m_Icon: {fileID: 7174288486110832750, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -24,13 +24,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1159608035614551697}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.31641728, y: 0.63236076, z: 0.63236076, w: -0.3164172}
+  m_LocalRotation: {x: -0.15763606, y: -0.68722993, z: 0.69071126, w: -0.16057363}
   m_LocalPosition: {x: 0.3697704, y: 0.26301706, z: 0.41511947}
   m_LocalScale: {x: 348.84003, y: 348.83997, z: 348.83997}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1161572375689639662}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -36.836}
+  m_LocalEulerAnglesHint: {x: 89.631, y: 27.154, z: -126.839}
 --- !u!1 &1282331271058969596
 GameObject:
   m_ObjectHideFlags: 0
@@ -755,6 +755,7 @@ MonoBehaviour:
   defaultSize: {x: 5, y: 5}
   highlightedSize: {x: 10, y: 10}
   interactionUI: {fileID: 8241116529341834465}
+  dropSymbolPrefab: {fileID: 0}
 --- !u!114 &1697586423167982183
 MonoBehaviour:
   m_ObjectHideFlags: 0

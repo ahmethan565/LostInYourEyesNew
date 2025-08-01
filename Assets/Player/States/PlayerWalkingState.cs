@@ -7,7 +7,7 @@ public class PlayerWalkingState : PlayerState
 
     public override void Enter()
     {
-        Debug.Log("Walking durumuna girildi.");
+        //Debug.Log("Walking durumuna girildi.");
         player.isSprinting = false;
 
         // Yürüme animasyonunu başlat (eğer varsa)
@@ -61,7 +61,7 @@ public class PlayerWalkingState : PlayerState
 
     public override void Exit()
     {
-        Debug.Log("Walking durumundan çıkıldı.");
+        //Debug.Log("Walking durumundan çıkıldı.");
         // Yürüme animasyonunu durdur (eğer varsa)
         // player.animator.SetBool("IsWalking", false);
     }

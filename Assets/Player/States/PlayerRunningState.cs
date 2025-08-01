@@ -13,7 +13,7 @@ public class PlayerRunningState : PlayerState
 
     public override void Enter()
     {
-        Debug.Log("Running durumuna girildi.");
+        //Debug.Log("Running durumuna girildi.");
 
         // ✅ Artık hız elle ayarlanmaz, FSM flag belirler
         player.isSprinting = true;
@@ -68,7 +68,7 @@ public class PlayerRunningState : PlayerState
 
     public override void Exit()
     {
-        Debug.Log("Running durumundan çıkıldı.");
+        //Debug.Log("Running durumundan çıkıldı.");
         sprintDuration = 0f;
 
         // player.animator.SetBool("IsRunning", false);

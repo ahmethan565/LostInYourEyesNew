@@ -25,6 +25,15 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         {
             return heldItemPickupScript.GetItemIcon();
         }
+        else if (heldItemGameObject != null)
+        {
+            // Check if it's a symbol
+            SymbolObject symbol = heldItemGameObject.GetComponent<SymbolObject>();
+            if (symbol != null)
+            {
+                return symbol.GetItemIcon();
+            }
+        }
         return null; // Return null if no item is held
     }
 
@@ -34,7 +43,35 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         {
             return heldItemPickupScript.GetDisplayName();
         }
+        else if (heldItemGameObject != null)
+        {
+            // Check if it's a symbol
+            SymbolObject symbol = heldItemGameObject.GetComponent<SymbolObject>();
+            if (symbol != null)
+            {
+                return symbol.GetDisplayName();
+            }
+        }
         return string.Empty; // Return empty string if no item is held
+    }
+
+    // --- Symbol-specific methods for puzzle system ---
+    public Texture GetHeldSymbolTexture()
+    {
+        if (heldItemGameObject != null)
+        {
+            SymbolObject symbol = heldItemGameObject.GetComponent<SymbolObject>();
+            if (symbol != null)
+            {
+                return symbol.GetTexture();
+            }
+        }
+        return null;
+    }
+
+    public bool IsHoldingSymbol()
+    {
+        return heldItemGameObject != null && heldItemGameObject.GetComponent<SymbolObject>() != null;
     }
 
     // --- Unity Lifecycle Methods ---
@@ -120,10 +157,34 @@ public class InventorySystem : MonoBehaviourPunCallbacks
         itemGo.transform.localPosition = Vector3.zero;
         itemGo.transform.localRotation = Quaternion.identity;
 
-        // Mark item as held. ItemPickup's IsHeld property will internally call ApplyHeldState.
-        itemPickup.IsHeld = true; 
-        
         Debug.Log($"Picked up item: {itemGo.name}");
+    }
+
+    // Overload for SymbolObject (puzzle system compatibility)
+    public void PickupItem(GameObject itemGo, SymbolObject symbolObject)
+    {
+        if (heldItemGameObject != null)
+        {
+            Debug.Log($"Already holding {heldItemGameObject.name}. Cannot pick up {itemGo.name}.");
+            return;
+        }
+
+        if (!photonView.IsMine)
+        {
+            Debug.LogWarning("Attempted to pick up symbol on a non-local player's inventory system. This should not happen.");
+            return;
+        }
+
+        heldItemGameObject = itemGo;
+        // For symbols, we'll store the symbol reference differently
+        heldItemPickupScript = null; // Symbols don't use ItemPickup
+
+        // Parent the item to the itemHolder transform.
+        itemGo.transform.SetParent(itemHolder);
+        itemGo.transform.localPosition = Vector3.zero;
+        itemGo.transform.localRotation = Quaternion.identity;
+
+        Debug.Log($"Picked up symbol: {itemGo.name}");
     }
 
     // Drops the currently held item.
@@ -145,9 +206,28 @@ public class InventorySystem : MonoBehaviourPunCallbacks
 
         Debug.Log($"Dropping item: {heldItemGameObject.name}");
 
-        // Tell the ItemPickup script to handle the network synchronization for dropping.
-        // ItemPickup's Drop() method sets IsHeld = false, which will call ApplyHeldState().
-        heldItemPickupScript.Drop(); 
+        // Check if it's a regular ItemPickup or a SymbolObject
+        if (heldItemPickupScript != null)
+        {
+            // Regular ItemPickup - use its Drop method
+            heldItemPickupScript.Drop(); 
+        }
+        else
+        {
+            // Symbol Object - use SymbolObject's Drop method
+            SymbolObject symbolObject = heldItemGameObject.GetComponent<SymbolObject>();
+            if (symbolObject != null)
+            {
+                Vector3 dropPosition = transform.position + transform.forward * 1.5f + Vector3.up * 0.5f;
+                Vector3 dropDirection = transform.forward;
+                symbolObject.Drop(dropPosition, dropDirection);
+            }
+            else
+            {
+                // Fallback - just unparent
+                heldItemGameObject.transform.SetParent(null);
+            }
+        }
 
         // Clear the local references.
         heldItemGameObject = null;

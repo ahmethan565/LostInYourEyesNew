@@ -23,7 +23,7 @@ public class PlayerSlidingState : PlayerState
 
     public override void Enter()
     {
-        Debug.Log("Sliding durumuna girildi.");
+        //Debug.Log("Sliding durumuna girildi.");
 
         slideTimer = flatSlideDuration;
         slideDirection = player.transform.forward;
@@ -71,7 +71,7 @@ public class PlayerSlidingState : PlayerState
 
     public override void Exit()
     {
-        Debug.Log("Sliding durumundan çıkıldı.");
+        //Debug.Log("Sliding durumundan çıkıldı.");
         // Gerekirse animasyon sıfırlama yapılabilir
     }
 

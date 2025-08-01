@@ -23,7 +23,7 @@ public class PlayerCrouchingState : PlayerState
 
     public override void Enter()
     {
-        Debug.Log("Crouching durumuna girildi.");
+        //Debug.Log("Crouching durumuna girildi.");
         player.isSprinting = false;
         originalMoveSpeed = player.baseWalkSpeed;
         originalControllerHeight = player.controller.height; // CharacterController'ın yüksekliğini al
@@ -93,7 +93,7 @@ public class PlayerCrouchingState : PlayerState
 
     public override void Exit()
     {
-        Debug.Log("Crouching durumundan çıkıldı.");
+        //Debug.Log("Crouching durumundan çıkıldı.");
         player.baseWalkSpeed = originalMoveSpeed; // Hızı eski haline getir
 
         // Karakter kontrol yüksekliğini ve merkezini eski haline getir

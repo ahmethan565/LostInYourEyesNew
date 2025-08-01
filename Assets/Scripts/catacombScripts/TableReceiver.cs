@@ -2,7 +2,7 @@ using System.Diagnostics;
 using ExitGames.Client.Photon.StructWrapping;
 using UnityEngine;
 
-public class TableReceiver : MonoBehaviour
+public class TableReceiver : MonoBehaviour, IInteractable
 {
     public static TableReceiver Instance;
 
@@ -58,7 +58,7 @@ public class TableReceiver : MonoBehaviour
         selectedTableTransform = puzzleManager.spawnedTableTransforms[puzzleManager.selectedTableIndex].position * 1.01f;
         selectedTableTransform -= new Vector3(0f, 6f, 0f);
 
-        TableDisplay[] displays = FindObjectsOfType<TableDisplay>();
+        TableDisplay[] displays = FindObjectsByType<TableDisplay>(FindObjectsSortMode.None);
         foreach (var display in displays)
             if (display.GetTableData() == data)
             {
@@ -124,6 +124,73 @@ public class TableReceiver : MonoBehaviour
         return symbol;
     }
 
+    // IInteractable Implementation
+    public void Interact()
+    {
+        // Handle basic interaction with the table
+        // For symbol placement, players should use C key (handled in InteractionManager)
+        if (InventorySystem.Instance != null && InventorySystem.Instance.IsHoldingSymbol())
+        {
+            // If holding a symbol, suggest using C key
+            UnityEngine.Debug.Log("Use C key to place symbol on table");
+        }
+        else if (CanUndo())
+        {
+            // If can undo, suggest using R key
+            UnityEngine.Debug.Log("Use R key to retrieve last placed symbol");
+        }
+    }
+
+    public void InteractWithItem(GameObject heldItemGameObject)
+    {
+        // Check if the held item is a symbol
+        SymbolObject symbolObject = heldItemGameObject.GetComponent<SymbolObject>();
+        if (symbolObject != null)
+        {
+            // Try to place the symbol
+            Texture symbolTexture = symbolObject.GetTexture();
+            if (symbolTexture != null)
+            {
+                bool placed = TryPlaceSymbol(symbolTexture);
+                if (placed)
+                {
+                    // Consume the symbol from inventory
+                    InventorySystem.Instance.ConsumeHeldItem();
+                    UnityEngine.Debug.Log("Symbol placed on table via item interaction");
+                }
+            }
+        }
+    }
+
+    public string GetInteractText()
+    {
+        // Check current state and provide appropriate text
+        if (InventorySystem.Instance != null && InventorySystem.Instance.IsHoldingSymbol())
+        {
+            if (currentSlotIndex >= symbolSlots.Length)
+            {
+                return "Table Full";
+            }
+            return "Place Symbol (C key)";
+        }
+        else if (CanUndo())
+        {
+            return "Retrieve Symbol (R key)";
+        }
+        else if (currentSlotIndex == 0)
+        {
+            return "Place symbols here";
+        }
+        else if (currentSlotIndex >= symbolSlots.Length)
+        {
+            return "Puzzle Complete";
+        }
+        else
+        {
+            return $"Symbols placed: {currentSlotIndex}/{symbolSlots.Length}";
+        }
+    }
+
     // public bool Check()
     // {
     //     Texture[] userInput = new Texture[symbolSlots.Length];
@@ -132,6 +199,6 @@ public class TableReceiver : MonoBehaviour
     //         userInput[i] = symbolSlots[i].GetSymbol();
     //     }
 
-            //     return catacombPuzzleChecker.Instance.Check(userInput);
-            // }        
+    //     return catacombPuzzleChecker.Instance.Check(userInput);
+    // }        
 }
