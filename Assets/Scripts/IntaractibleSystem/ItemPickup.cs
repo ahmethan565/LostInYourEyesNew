@@ -20,18 +20,25 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     [Tooltip("The icon (Sprite) representing this item, displayed in UI.")]
     public Sprite itemIcon; // Icon to show in UI
 
-    [Tooltip("The speed at which the item falls downwards when dropped.")]
-    public float fallSpeed = 5f; // Units per second
+    [Tooltip("The mass of the item when dropped (affects physics simulation).")]
+    public float itemMass = 1f;
 
-    [Tooltip("Optional: The LayerMask for what is considered 'ground' when dropping the item. If empty, it will stop on any collider.")]
-    public LayerMask groundLayer;
+    [Tooltip("The drag applied to the item when dropped (0 = no drag, higher values = more air resistance).")]
+    public float itemDrag = 0.1f;
+
+    [Tooltip("The angular drag applied to the item when dropped (affects rotation dampening).")]
+    public float itemAngularDrag = 0.05f;
+
+    [Tooltip("The force applied when dropping the item forward.")]
+    public float dropForce = 3f;
+
+    [Tooltip("The upward force component when dropping the item.")]
+    public float dropUpwardForce = 1f;
 
     // References to the item's components.
     private Collider col;
     private Renderer[] renderers; // Use an array to handle multiple renderers in children
-
-    private Coroutine fallCoroutine; // Reference to the fall coroutine
-    private bool isFalling = false; // Track falling state
+    private Rigidbody rb; // Physics component for realistic movement
 
     // --- Public Getters for UI Data ---
     public string GetDisplayName()
@@ -50,6 +57,7 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         // Get references to components on this GameObject.
         col = GetComponent<Collider>();
+        rb = GetComponent<Rigidbody>();
 
         // Get all renderers on this GameObject and its children.
         renderers = GetComponentsInChildren<Renderer>();
@@ -59,10 +67,35 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         {
             Debug.LogError("ItemPickup: Collider not found on " + gameObject.name + ". Please add one.", this);
         }
+        
+        // Ensure Rigidbody exists or create one
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+            Debug.Log("ItemPickup: Added Rigidbody component to " + gameObject.name);
+        }
+        
         if (renderers == null || renderers.Length == 0)
         {
             Debug.LogWarning("ItemPickup: No Renderers found on " + gameObject.name + ". Item might not be visible.", this);
         }
+
+        // Configure Rigidbody for pickup items
+        ConfigureRigidbody();
+    }
+
+    // Configure the Rigidbody settings for this item
+    private void ConfigureRigidbody()
+    {
+        if (rb == null) return;
+
+        rb.mass = itemMass;
+        rb.drag = itemDrag;
+        rb.angularDrag = itemAngularDrag;
+        
+        // Start with physics disabled (will be enabled when dropped)
+        rb.isKinematic = true;
+        rb.useGravity = false;
     }
 
     // --- IInteractable Implementation ---
