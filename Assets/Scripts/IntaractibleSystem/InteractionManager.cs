@@ -36,10 +36,24 @@ public class InteractionManager : MonoBehaviour
     {
         if (!photonView.IsMine) return;
 
-        HandleRaycast();
-        HandleInput();
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            Debug.Log("Interaction Key Pressed");
+            HandleRaycast();
+            HandleInput();
+        }
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Debug.Log("R Key Pressed");
+            HandleInput();
+        }
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            Debug.Log("G Key Pressed");
+            DropHeldSymbol();
+        }
     }
-
+    public Texture heldSymbol = null;
     private void HandleRaycast()
     {
         Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
@@ -47,6 +61,22 @@ public class InteractionManager : MonoBehaviour
         {
             Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.green);
 
+            if (heldSymbol == null && hit.collider.TryGetComponent(out SymbolObject symbol))
+            {
+                heldSymbol = symbol.GetTexture();
+                Debug.Log(heldSymbol);
+                Destroy(hit.collider.gameObject);
+                Debug.Log("Sembol Alındı");
+            }
+            else if (heldSymbol != null && hit.collider.CompareTag("TableReceiver"))
+            {
+                bool placed = TableReceiver.Instance.TryPlaceSymbol(heldSymbol);
+                if (placed)
+                {
+                    heldSymbol = null;
+                    Debug.Log("Placed");
+                }
+            }
             if (hit.collider.TryGetComponent<IInteractable>(out IInteractable interactable))
             {
                 // Store the current interactable
@@ -81,6 +111,54 @@ public class InteractionManager : MonoBehaviour
         currentInteractable = null; // Clear the reference
         crosshairImage.rectTransform.sizeDelta = Vector2.Lerp(crosshairImage.rectTransform.sizeDelta, defaultSize, Time.deltaTime * 10f);
     }
+    void UndoLastPlacement()
+    {
+        Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
+        Debug.DrawRay(ray.origin, ray.direction * interactRange, Color.blue);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactRange, interactableLayerMask))
+        {
+            if (heldSymbol == null && TableReceiver.Instance.CanUndo() && hit.collider.TryGetComponent<TableReceiver>(out TableReceiver receiver))
+            {
+                heldSymbol = TableReceiver.Instance.UndoLastPlacement();
+                Debug.Log("geri aldın");
+            }
+        }
+    }
+    public GameObject dropSymbolPrefab;
+    void DropHeldSymbol()
+    {
+        if (heldSymbol == null) return;
+        Vector3 dropPosition = transform.position + transform.forward * 1f + Vector3.up * 0.5f;
+        GameObject dropped = Instantiate(dropSymbolPrefab, dropPosition, Quaternion.identity);
+
+        // SymbolObject bileşenini bul ve texture'ını güncelle
+        SymbolObject symbolObject = dropped.GetComponent<SymbolObject>();
+        if (symbolObject != null)
+        {
+            symbolObject.symbolTexture = heldSymbol; // SymbolObject'teki texture'ı güncelle
+            
+            // MeshRenderer'ı da manuel olarak güncelle (Start() çalışmadan önce)
+            if (symbolObject.renderer != null)
+            {
+                symbolObject.renderer.material = new Material(symbolObject.renderer.material);
+                symbolObject.renderer.material.mainTexture = heldSymbol;
+            }
+        }
+        else
+        {
+            // Eğer SymbolObject yoksa, sadece MeshRenderer'ı güncelle
+            MeshRenderer renderer = dropped.GetComponentInChildren<MeshRenderer>();
+            if (renderer != null)
+            {
+                renderer.material = new Material(renderer.material); // Materyalin bir kopyasını oluştur
+                renderer.material.mainTexture = heldSymbol; // Yeni dokuyu ata
+            }
+        }
+
+        heldSymbol = null;
+
+        Debug.Log("dropped");
+    }
 
     // New helper method to manage UI text updates based on held item and target type
     private void UpdateInteractionUI(IInteractable interactable)
@@ -114,6 +192,11 @@ public class InteractionManager : MonoBehaviour
 
     private void HandleInput()
     {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+
+            UndoLastPlacement();
+        }
         if (currentInteractable != null && Input.GetKeyDown(KeyCode.E))
         {
             GameObject heldItem = InventorySystem.Instance?.GetHeldItemGameObject();
