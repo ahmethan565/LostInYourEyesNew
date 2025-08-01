@@ -1,7 +1,6 @@
 // ItemPickup.cs
 using UnityEngine;
 using Photon.Pun;
-using System.Collections; // For coroutines
 
 // This script is attached to any game object that can be picked up.
 // It implements IInteractable and handles the item's network state.
@@ -90,8 +89,8 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         if (rb == null) return;
 
         rb.mass = itemMass;
-        rb.drag = itemDrag;
-        rb.angularDrag = itemAngularDrag;
+        rb.linearDamping = itemDrag;
+        rb.angularDamping = itemAngularDrag;
         
         // Start with physics disabled (will be enabled when dropped)
         rb.isKinematic = true;
@@ -137,8 +136,12 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
             return;
         }
 
-        // IMPORTANT: Stop any falling animation immediately when picked up
-        StopFallingAnimation();
+        // IMPORTANT: Stop physics when picked up
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
 
         // This client now owns the item and is attempting to pick it up.
         // First, mark it as held locally.
@@ -166,35 +169,43 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         // Mark as not held locally.
         IsHeld = false;
 
-        // Stop any existing falling animation before starting a new one
-        StopFallingAnimation();
-
-        // Kameranın baktığı yönü al
+        // Get camera forward direction for dropping
         Transform cam = Camera.main.transform;
-        Vector3 dropForward = cam.forward;
-        dropForward.y = 0; // Yukarı bakıyorsa item zıplamasın, sadece yatay düzlemde yön al
-        dropForward.Normalize();
+        Vector3 dropDirection = cam.forward;
+        dropDirection.y = 0; // Keep it horizontal
+        dropDirection.Normalize();
 
-        // Bırakılacak konumu belirle
-        Vector3 dropOffset = dropForward * 2.4f + Vector3.up * -0.5f; // 1.5 birim ön + hafif yukarı
+        // Calculate drop position
+        Vector3 dropOffset = dropDirection * 2.4f + Vector3.up * -0.5f;
         transform.position = cam.position + dropOffset;
 
-        // Dönüşünü de oyuncunun baktığı yöne çevirmek istersen:
-        transform.rotation = Quaternion.LookRotation(dropForward);
-
-        // Ağda bırakılma durumunu bildir
-        photonView.RPC("RPC_SetItemState", RpcTarget.AllBuffered, false);
-    }
-
-    // Helper method to stop falling animation
-    private void StopFallingAnimation()
-    {
-        if (fallCoroutine != null)
+        // Set rotation to face the drop direction
+        if (dropDirection != Vector3.zero)
         {
-            StopCoroutine(fallCoroutine);
-            fallCoroutine = null;
+            transform.rotation = Quaternion.LookRotation(dropDirection);
         }
-        isFalling = false;
+
+        // Enable physics for realistic dropping
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            
+            // Apply forces for realistic throwing motion
+            Vector3 forceDirection = dropDirection * dropForce + Vector3.up * dropUpwardForce;
+            rb.AddForce(forceDirection, ForceMode.VelocityChange);
+            
+            // Add some random rotation for more natural movement
+            Vector3 randomTorque = new Vector3(
+                Random.Range(-2f, 2f),
+                Random.Range(-2f, 2f),
+                Random.Range(-2f, 2f)
+            );
+            rb.AddTorque(randomTorque, ForceMode.VelocityChange);
+        }
+
+        // Synchronize drop state across network
+        photonView.RPC("RPC_SetItemState", RpcTarget.AllBuffered, false);
     }
 
     // --- IInteractable Implementation ---
@@ -228,7 +239,6 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         {
             // We own this item and are sending its state to others.
             stream.SendNext(IsHeld);
-            stream.SendNext(isFalling); // Also sync falling state
             // If you are NOT using PhotonTransformView, you might also send position/rotation here for smoother sync
             // stream.SendNext(transform.position);
             // stream.SendNext(transform.rotation);
@@ -237,16 +247,8 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         {
             // We are receiving data from the owner.
             bool wasHeld = IsHeld;
-            bool wasFalling = isFalling;
             
             IsHeld = (bool)stream.ReceiveNext();
-            isFalling = (bool)stream.ReceiveNext();
-            
-            // If item state changed from falling to held, stop falling animation
-            if (wasFalling && !isFalling && IsHeld)
-            {
-                StopFallingAnimation();
-            }
             
             // If the item is marked as held by the owner, we need to update its visual state.
             // This handles cases where a player joins late or an item's state changes rapidly.
@@ -274,18 +276,24 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
     {
         ApplyHeldState(becomeHeld);
 
-        // If the item is being picked up, stop any falling animation
+        // If the item is being picked up, disable physics
         if (becomeHeld)
         {
-            StopFallingAnimation();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+                rb.useGravity = false;
+            }
         }
         // If the item is being dropped (not held), and this client owns it,
-        // initiate the custom fall animation.
+        // enable physics for realistic movement.
         else if (!becomeHeld && photonView.IsMine)
         {
-            // Stop any existing falling animation before starting a new one
-            StopFallingAnimation();
-            fallCoroutine = StartCoroutine(SimulateFall());
+            if (rb != null)
+            {
+                rb.isKinematic = false;
+                rb.useGravity = true;
+            }
         }
     }
 
@@ -319,66 +327,11 @@ public class ItemPickup : MonoBehaviourPunCallbacks, IInteractable
         }
     }
 
-    // --- Custom Gravity Simulation ---
-    IEnumerator SimulateFall()
-    {
-        isFalling = true;
-        
-        // Continuously fall until ground is hit or item is picked up
-        while (isFalling && !IsHeld)
-        {
-            // Double check if item was picked up during falling
-            if (IsHeld)
-            {
-                isFalling = false;
-                break;
-            }
-
-            // Calculate next position downwards
-            Vector3 nextPos = transform.position + Vector3.down * fallSpeed * Time.deltaTime;
-
-            // Perform a small raycast downwards from current position to detect ground
-            // The origin of the ray should be at the bottom of the collider or slightly above.
-            // The distance of the ray should be slightly more than the step size to detect imminent collision.
-            float rayOriginOffset = col.bounds.extents.y; // From pivot to bottom of collider
-            Vector3 rayOrigin = transform.position - Vector3.up * rayOriginOffset;
-            float rayDistance = (fallSpeed * Time.deltaTime) + 0.05f; // Small buffer for detection
-
-            RaycastHit hit;
-            bool hitGround = false;
-
-            if (groundLayer != 0) // If a specific ground layer is set, use it
-            {
-                hitGround = Physics.Raycast(rayOrigin, Vector3.down, out hit, rayDistance, groundLayer);
-            }
-            else // Otherwise, hit any collider
-            {
-                hitGround = Physics.Raycast(rayOrigin, Vector3.down, out hit, rayDistance);
-            }
-
-            if (hitGround)
-            {
-                // Stop at the hit point, adjusted to be on top of the collider.
-                transform.position = new Vector3(transform.position.x, hit.point.y + col.bounds.extents.y, transform.position.z);
-                break; // Stop the fall coroutine
-            }
-            else
-            {
-                // Move down if no ground hit
-                transform.position = nextPos;
-            }
-
-            yield return null; // Wait for next frame
-        }
-
-        isFalling = false;
-        fallCoroutine = null;
-    }
-
     public void InteractWithItem(GameObject heldItemGameObject)
     {
         throw new System.NotImplementedException();
     }
+    
     // Example of RPC for manual position sync if PhotonTransformView is not used on the item
     // [PunRPC]
     // void RPC_SyncPosition(Vector3 pos)

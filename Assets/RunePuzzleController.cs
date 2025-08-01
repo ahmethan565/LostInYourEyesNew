@@ -4,7 +4,7 @@ using Photon.Pun;
 public class RunePuzzleController : MonoBehaviourPun
 {
     public RuneSlot[] runeSlots;
-    public KeyDoorExample doorToOpen; // Kapı objenizin script'i
+    public KeyDoorExample[] doorsToOpen; // Açılacak kapı objeleri
 
     private void Start()
     {
@@ -15,6 +15,31 @@ public class RunePuzzleController : MonoBehaviourPun
         foreach (var slot in runeSlots)
         {
             slot.puzzleController = this;
+        }
+        
+        // Kapı referanslarını kontrol et
+        if (doorsToOpen != null && doorsToOpen.Length > 0)
+        {
+            for (int i = 0; i < doorsToOpen.Length; i++)
+            {
+                if (doorsToOpen[i] == null)
+                {
+                    Debug.LogError($"Door at index {i} in doorsToOpen array is null! Please assign all doors in the Inspector.");
+                }
+                else
+                {
+                    // Test door validity by checking required components or properties
+                    // Eğer door.OpenDoor() metodu çağrıldığında gerekli olan componentleri kontrol et
+                    if (doorsToOpen[i].gameObject.activeSelf == false)
+                    {
+                        Debug.LogWarning($"Door at index {i} is inactive and might not work correctly!");
+                    }
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("No doors assigned to this puzzle controller. The puzzle will not open any doors when completed.");
         }
     }
 
@@ -36,11 +61,43 @@ public class RunePuzzleController : MonoBehaviourPun
 
         if (allCorrectRunesPlaced)
         {
-            Debug.Log("All correct runes placed! Opening door...");
-            // Kapıyı açma işlemini sadece Master Client yapsın, böylece senkronizasyon sorunları yaşanmaz.
+            Debug.Log("All correct runes placed! Opening doors...");
+            // Kapı açma işlemini sadece Master Client yapsın, böylece senkronizasyon sorunları yaşanmaz.
             if (PhotonNetwork.IsMasterClient)
             {
-                doorToOpen.OpenDoor(); // Kapıyı aç
+                // Tüm kapıları açıyoruz
+                if (doorsToOpen != null && doorsToOpen.Length > 0)
+                {
+                    bool anyDoorOpened = false;
+                    foreach (var door in doorsToOpen)
+                    {
+                        if (door != null)
+                        {
+                            try
+                            {
+                                door.OpenDoor(); // Kapıyı aç
+                                anyDoorOpened = true;
+                            }
+                            catch (System.NullReferenceException e)
+                            {
+                                Debug.LogError($"Error opening door: {e.Message}\nThis door object may be missing components required by KeyDoorExample.OpenDoor()");
+                            }
+                        }
+                        else
+                        {
+                            Debug.LogWarning("Null door reference in doorsToOpen array!");
+                        }
+                    }
+                    
+                    if (!anyDoorOpened)
+                    {
+                        Debug.LogError("Failed to open any doors. Check door references and components!");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("No doors assigned to open!");
+                }
                 // Kapı açma işlemini diğer istemcilere de senkronize etmek için
                 // doorToOpen script'inizde bir RPC metodu olmalı.
                 // Örneğin: photonView.RPC("RPC_OpenDoor", RpcTarget.All);
